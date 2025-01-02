@@ -138,7 +138,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>true</EnableUAC>
-      <AdditionalLibraryDirectories>$(SolutionDir)counter strike 2 base\rerenderer\freetype\binary;C:\Users\Damie\source\repos\counter strike 2 base\counter strike 2 base\renderer\freetype\binary;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)counter strike 2 base\rerenderer\freetype\binary;$(SolutionDir)counter strike 2 base\renderer\freetype\binary;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d11.lib;dxguid.lib;Winmm.lib
 ;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
