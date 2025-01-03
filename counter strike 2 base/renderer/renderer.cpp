@@ -16,6 +16,11 @@ void renderer_t::line(const sdk::vector2d& min, const sdk::vector2d& max, const 
     );
 }
 
+void renderer_t::render_line(const sdk::vector2d& min, const sdk::vector2d& max, sdk::color aColor, float flThickness)
+{
+    draw->draw_list_active->AddLine(ImVec2(min.x, min.y), ImVec2(max.x, max.y), aColor.to_u32(), flThickness);
+}
+
 void renderer_t::rect_filled(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const {
     draw->draw_list_active->AddRectFilled(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32()
     );

@@ -17,4 +17,4 @@ public:
 
 };
 
-inline event_log* eventlog = new event_log;
+inline std::unique_ptr<event_log> eventlog = std::make_unique<event_log>();

@@ -1,21 +1,111 @@
-#define IMGUI_DEFINE_MATH_OPERATORS
+﻿#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "menu.h"
 #include "../Imgui/imgui.h"
+#include "../Imgui/imgui_impl_win32.h"
+#include "../Imgui/imgui_impl_dx11.h"
 #include "../imgui/imgui_internal.h"
 #include "../Imgui/imgui_freetype.h"
-#include "../Imgui/imgui_edited.hpp"
 #include "config.h"
+#include "draw_manager.h"
+#include "../resources/font_namespace.h"
 
-#include <d3d11.h>
-#include <tchar.h>
+// Standard library and necessary includes
+#include <string>   // For std::string
+#include <cmath>    // For mathematical functions like std::round
+#include <d3d11.h>  // For Direct3D 11 interface
+#include <tchar.h>  // For TCHAR and string-handling macros
 
 bool info_bar = true;
 
 DWORD picker_flags = ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayHex;
-static float tab_alpha = 0.f; 
-static float tab_add; 
-static int active_tab = 0;
+float tab_size = 0.f;
+float arrow_roll = 0.f;
+bool tab_opening = true;
+int rotation_start_index;
+static bool Dcheckbox = false;
+static bool Headcheckbox = false;
+static bool Healthcheckbox = false;
+static bool Namecheckbox = false;
+static bool Distancecheckbox = false;
+static bool weaponcheckbox = false;
+static bool Filterteams = false;
+static bool Filterteams_map = false;
+static bool Bonecheckbox = false;
+static float boxtk = 1.f;
+static float hptk = 1.f;
+static float hdtk = 1.f;
+static float bonetk = 1.f;
+static bool Flogs[6] = { false, false, false, false,false };
+const char* Flogss[6] = { "Head", "Health Bar", "Player Name", "Distance","Weapon" };
+
+
+
+//this is cool 
+void ImRotateStart()
+{
+    rotation_start_index = ImGui::GetWindowDrawList()->VtxBuffer.Size;
+}
+
+ImVec2 ImRotationCenter()
+{
+    ImVec2 l(FLT_MAX, FLT_MAX), u(-FLT_MAX, -FLT_MAX); // bounds
+
+    const auto& buf = ImGui::GetWindowDrawList()->VtxBuffer;
+    for (int i = rotation_start_index; i < buf.Size; i++)
+        l = ImMin(l, buf[i].pos), u = ImMax(u, buf[i].pos);
+
+    return ImVec2((l.x + u.x) / 2, (l.y + u.y) / 2); // or use _ClipRectStack?
+}
+
+void ImRotateEnd(float rad, ImVec2 center = ImRotationCenter())
+{
+    float s = sin(rad), c = cos(rad);
+    center = ImRotate(center, s, c) - center;
+
+    auto& buf = ImGui::GetWindowDrawList()->VtxBuffer;
+    for (int i = rotation_start_index; i < buf.Size; i++)
+        buf[i].pos = ImRotate(buf[i].pos, s, c) - center;
+}
+
+void Particles()
+{
+    ImVec2 screen_size = { (float)GetSystemMetrics(SM_CXSCREEN), (float)GetSystemMetrics(SM_CYSCREEN) };
+
+    static ImVec2 partile_pos[100];
+    static ImVec2 partile_target_pos[100];
+    static float partile_speed[100];
+    static float partile_radius[100];
+
+
+    for (int i = 1; i < 50; i++)
+    {
+        if (partile_pos[i].x == 0 || partile_pos[i].y == 0)
+        {
+            partile_pos[i].x = rand() % (int)screen_size.x + 1;
+            partile_pos[i].y = 15.f;
+            partile_speed[i] = 1 + rand() % 25;
+            partile_radius[i] = rand() % 4;
+
+            partile_target_pos[i].x = rand() % (int)screen_size.x;
+            partile_target_pos[i].y = screen_size.y * 2;
+        }
+
+        partile_pos[i] = ImLerp(partile_pos[i], partile_target_pos[i], ImGui::GetIO().DeltaTime * (partile_speed[i] / 60));
+
+        if (partile_pos[i].y > screen_size.y)
+        {
+            partile_pos[i].x = 0;
+            partile_pos[i].y = 0;
+        }
+
+        ImGui::GetWindowDrawList()->AddCircleFilled(partile_pos[i], partile_radius[i], ImColor(71, 226, 67, 255 / 2));
+    }
+
+}
+
+#include "../resources/font_namespace.h"
+#include "imgui_settings.h"
 
 void menu_t::menu()
 {
@@ -24,389 +114,279 @@ void menu_t::menu()
     if (!window_opened)
         return;
 
-    static float color[4] = { 112 / 255.f, 109 / 255.f, 214 / 255.f, 1.f };
-    c::accent_color = { color[0], color[1], color[2], 1.f };
+    ImGuiStyle* s = &ImGui::GetStyle();
 
-    static float background[4] = { 21 / 255.f, 21 / 255.f, 21 / 255.f, 1.f };
-    c::bg::background = { background[0], background[1], background[2], background[3] };
+    s->WindowPadding = ImVec2(0, 0), s->WindowBorderSize = 0;
+    s->ItemSpacing = ImVec2(20, 20);
 
-    static float border[4] = { 23 / 255.f, 24 / 255.f, 25 / 255.f, 1.f };
-    c::bg::border = { border[0], border[1], border[2], border[3] };
+    s->ScrollbarSize = 8.f;
 
-    static float child[4] = { 23 / 255.f, 24 / 255.f, 25 / 255.f, 1.f };
-    c::child::background = { child[0], child[1], child[2], child[3] };
+    ImGui::GetBackgroundDrawList()->AddImage(image::bg, ImVec2(0, 0), ImVec2(1920, 1080), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255));
 
-    static float widget[4] = { 28 / 255.f, 28 / 255.f, 35 / 255.f, 1.f };
-    c::widget::background = { widget[0], widget[1], widget[2], widget[3] };
+    ImGui::SetNextWindowSize(ImVec2(c::bg::size) + ImVec2(tab_size, 0));
 
-    static float selectable[4] = { 37 / 255.f, 37 / 255.f, 47 / 255.f, 1.f };
-    c::widget::selectable = { selectable[0], selectable[1], selectable[2], selectable[3] };
-
-    static float popup[4] = { 21 / 255.f, 21 / 255.f, 22 / 255.f, 1.f };
-    c::widget::popup = { popup[0], popup[1], popup[2], popup[3] };
-
-    static float text_active[4] = { 255 / 255.f, 255 / 255.f, 255 / 255.f, 1.f };
-    c::text::text_active = { text_active[0], text_active[1], text_active[2], text_active[3] };
-
-    static float text_hovered[4] = { 89 / 255.f, 95 / 255.f, 105 / 255.f, 1.f };
-    c::text::text_hov = { text_hovered[0], text_hovered[1], text_hovered[2], text_hovered[3] };
-
-    static float text_default[4] = { 50 / 255.f, 54 / 255.f, 59 / 255.f, 1.f };
-    c::text::text = { text_default[0], text_default[1], text_default[2], text_default[3] };
-
-    style->WindowPadding = ImVec2(0, 0);
-    style->ItemSpacing = ImVec2(20, 0);
-    style->WindowBorderSize = 0;
-    style->ScrollbarSize = 9.f;
-
-    // ImGui::GetBackgroundDrawList()->AddImage(image::background_preview, ImVec2(0, 0), ImVec2(1920, 1080), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255));
-
-    ImGui::SetNextWindowSize(c::bg::size);
-
-    ImGui::Begin("RAGNAREK", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
+    ImGui::Begin("IMGUI MENU", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
     {
         const ImVec2& pos = ImGui::GetWindowPos();
-        const ImVec2& region = ImGui::GetContentRegionMax();
-        const ImVec2& spacing = style->ItemSpacing;
+        const auto& p = ImGui::GetWindowPos();
+        const ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
 
-        ImGui::GetBackgroundDrawList()->AddRectFilled(pos, pos + ImVec2(c::bg::size), ImGui::GetColorU32(c::bg::background), c::bg::rounding + 1);
-        ImGui::GetBackgroundDrawList()->AddRectFilled(pos, pos + ImVec2(100, c::bg::size.y), ImGui::GetColorU32(c::bg::border), c::bg::rounding, ImDrawFlags_RoundCornersLeft);
+        ImGui::GetBackgroundDrawList()->AddRectFilled(pos, pos + ImVec2(c::bg::size) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::bg::background), c::bg::rounding);
+        ImGui::GetBackgroundDrawList()->AddRect(pos, pos + ImVec2(c::bg::size) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::bg::outline_background), c::bg::rounding);
 
-       // ImGui::GetBackgroundDrawList()->AddImage(image::logo, pos + (ImVec2(100, 100) - ImVec2(38, 43)) / 2, pos + (ImVec2(100, 100) + ImVec2(38, 43)) / 2, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(c::accent_color));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(c::accent_text_color));
 
-        ImGui::GetBackgroundDrawList()->AddLine(pos + ImVec2(0, 100), pos + ImVec2(100, 100), ImGui::GetColorU32(c::widget::background), 1.f);
+        ImGui::PushFont(font::tahoma_bold2); ImGui::RenderTextClipped(pos + ImVec2(60, 0) + spacing, pos + spacing + ImVec2(60, 60) + ImVec2(tab_size + (spacing.x / 2) - 30, 0), "UC-Menu", NULL, NULL, ImVec2(0.5f, 0.5f), NULL); ImGui::PopFont();
 
-        static int page = 0;
+        ImGui::RenderTextClipped(pos + ImVec2(60 + spacing.x, c::bg::size.y - 60 * 2), pos + spacing + ImVec2(60, c::bg::size.y) + ImVec2(tab_size, 0), "Lifetime", NULL, NULL, ImVec2(0.0f, 0.43f), NULL);
+        ImGui::RenderTextClipped(pos + ImVec2(60 + spacing.x, c::bg::size.y - 60 * 2), pos + spacing + ImVec2(60, c::bg::size.y) + ImVec2(tab_size, 0), "hefan2429", NULL, NULL, ImVec2(0.0f, 0.57f), NULL);
 
-        ImGui::SetCursorPos(ImVec2((100 - 47) / 2, 100 + (47 / 2)));
+        ImGui::PushFont(font::tahoma_bold2); ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(250, 255, 255, 255)); ImGui::RenderTextClipped(pos + ImVec2(0, 0) + spacing, pos + spacing + ImVec2(60, 40) + ImVec2(tab_size + (spacing.x / 2) + 199, 0), "Hello, UC-Menu", NULL, NULL, ImVec2(1.f, 0.5f), NULL); ImGui::PopFont(); ImGui::PopStyleColor();
+
+        ImGui::GetBackgroundDrawList()->AddImage(image::logo, pos + ImVec2(10, 10), pos + ImVec2(10, 10), ImVec2(100, 100), ImVec2(100, 100), ImColor(255, 255, 255, 255));
+
+
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(90, 93, 100, 255)); ImGui::RenderTextClipped(pos + ImVec2(30, 20) + spacing, pos + spacing + ImVec2(60, 80) + ImVec2(tab_size + (spacing.x / 2) + 108, -20), "Welcome Back!", NULL, NULL, ImVec2(1.f, 0.5f), NULL); ImGui::PopStyleColor();
+
+        static char Search[64] = { "" };
+        ImGui::SetCursorPos(ImVec2(385 + tab_size, -20) + (s->ItemSpacing * 2));
+        ImGui::BeginChild("", " ", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) / 2, 60));
+        ImGui::PushFont(font::tab_icon);
+        ImGui::Text("I"); ImGui::SameLine(); ImGui::Text("H"); ImGui::SameLine(); ImGui::Text("G");
+        // ImGui::GetWindowDrawList()->AddText(pos + ImVec2(600, 36), ImColor(90, 93, 100, 255), "I");
+        // ImGui::GetWindowDrawList()->AddText(pos + ImVec2(635, 36), ImColor(90, 93, 100, 255), "H");
+        // ImGui::GetWindowDrawList()->AddText(pos + ImVec2(670, 36), ImColor(90, 93, 100, 255), "G");
+        ImGui::PopFont(); ImGui::SameLine(); ImGui::SetNextItemWidth(180); ImGui::InputTextWithHint("Search function", "Search...", Search, 64, NULL);
+        ImGui::EndChild();
+        ImGui::PopStyleColor(1);
+
+
+        const char* nametab_array1[6] = { "E", "D", "A", "B", "C","F" };
+
+        const char* nametab_array[6] = { "Legit", "Visuals", "Skins", "Configs", "Settings","Chat" };
+        const char* nametab_hint_array[6] = { "Aimbot,Rcs,Trigger", "Overlay,Chams,World", "All Game Skins", "Save your settings", "Element settings","Contact online users" };
+
+
+        static int tabs = 0;
+
+        ImGui::SetCursorPos(ImVec2(spacing.x + (60 - 22) / 2, 60 + (spacing.y * 2) + 22));
         ImGui::BeginGroup();
         {
-            if (edited::Tab(0 == page, 1, "c", ImVec2(47, 47))) page = 0;
-
-            if (edited::Tab(1 == page, 2, "a", ImVec2(47, 47))) page = 1;
-
-            if (edited::Tab(2 == page, 3, "b", ImVec2(47, 47))) page = 2;
-
-            if (edited::Tab(3 == page, 4, "o", ImVec2(47, 47))) page = 3;
-
-            if (edited::Tab(4 == page, 5, "v", ImVec2(47, 47))) page = 4;
-
-            if (edited::Tab(5 == page, 6, "f", ImVec2(47, 47))) page = 5;
-
-            if (edited::Tab(6 == page, 7, "e", ImVec2(47, 47))) page = 6;
+            for (int i = 0; i < sizeof(nametab_array1) / sizeof(nametab_array1[0]); i++)
+                if (ImGui::Tab(i == tabs, nametab_array1[i], nametab_array[i], nametab_hint_array[i], ImVec2(35 + tab_size, 35))) tabs = i;
         }
         ImGui::EndGroup();
 
-        ImGui::SetCursorPos(ImVec2(100 + spacing.x, 0));
+        ImGui::SetCursorPos(ImVec2(8, 9) + spacing);
 
-        tab_alpha = ImClamp(tab_alpha + (4.f * ImGui::GetIO().DeltaTime * (page == active_tab ? 1.f : -1.f)), 0.f, 1.f);
-        if (tab_alpha == 0.f && tab_add == 0.f) active_tab = page;
+        ImRotateStart();
+        if (ImGui::CustomButton(1, image::roll, ImVec2(35, 35), ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(c::accent_color))) tab_opening = !tab_opening;
+        ImRotateEnd(1.57f * arrow_roll);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, tab_alpha * style->Alpha);
+        ImGui::GetBackgroundDrawList()->AddRectFilled(pos + ImVec2(0, -20 + spacing.y) + spacing, pos + spacing + ImVec2(60, c::bg::size.y - 60 - spacing.y * 3) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::child::background), c::child::rounding);
+        ImGui::GetBackgroundDrawList()->AddRect(pos + ImVec2(0, -20 + spacing.y) + spacing, pos + spacing + ImVec2(60, c::bg::size.y - 60 - spacing.y * 3) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::child::outline_background), c::child::rounding);
 
-        ImGui::BeginChild("CONTAINER", ImVec2(c::bg::size) - ImVec2(100 + spacing.x, 0));
+        ImGui::GetBackgroundDrawList()->AddRectFilled(pos + ImVec2(0, c::bg::size.y - 60 - spacing.y * 2) + spacing, pos + spacing + ImVec2(60, c::bg::size.y - spacing.y * 2) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::child::background), c::child::rounding);
+        ImGui::GetBackgroundDrawList()->AddRect(pos + ImVec2(0, c::bg::size.y - 60 - spacing.y * 2) + spacing, pos + spacing + ImVec2(60, c::bg::size.y - spacing.y * 2) + ImVec2(tab_size, 0), ImGui::GetColorU32(c::child::outline_background), c::child::rounding);
+
+        ImGui::GetWindowDrawList()->AddImage(image::logo, pos + ImVec2(0, c::bg::size.y - 60 - spacing.y * 2) + spacing + ImVec2(12, 12), pos + spacing + ImVec2(60, c::bg::size.y - spacing.y * 2) - ImVec2(12, 12), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255));
+
+        ImGui::GetWindowDrawList()->AddCircleFilled(pos + ImVec2(63, c::bg::size.y - (spacing.y * 2) + 3), 10.f, ImGui::GetColorU32(c::child::background), 100.f);
+        ImGui::GetWindowDrawList()->AddCircleFilled(pos + ImVec2(63, c::bg::size.y - (spacing.y * 2) + 3), 6.f, ImColor(0, 255, 0, 255), 100.f);
+
+        Particles();
+
+        static float tab_alpha = 0.f; /* */ static float tab_add; /* */ static int active_tab = 0;
+
+        tab_alpha = ImClamp(tab_alpha + (4.f * ImGui::GetIO().DeltaTime * (tabs == active_tab ? 1.f : -1.f)), 0.f, 1.f);
+        tab_add = ImClamp(tab_add + (std::round(350.f) * ImGui::GetIO().DeltaTime * (tabs == active_tab ? 1.f : -1.f)), 0.f, 1.f);
+
+        if (tab_alpha == 0.f && tab_add == 0.f) active_tab = tabs;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, tab_alpha * s->Alpha);
+        if (tabs == 1)
         {
-            if (active_tab == 0)
+
+
+            ImGui::SetCursorPos(ImVec2(60 + tab_size, 60) + (s->ItemSpacing * 2));
+            ImGui::BeginGroup();
             {
-                ImGui::BeginGroup();
+                ImGui::BeginChild("D", "MAIN", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) / 2, 420));
                 {
-                    edited::BeginChild("Weapons", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static int select = 0;
-                        const char* items[3]{ "AWP", "AK47", "M4A1" };
-                        edited::Combo("Select Weapon", &select, items, IM_ARRAYSIZE(items), 3);
 
-                        static bool enable_cfg = true;
-                        edited::Checkbox("Enable Config", &enable_cfg);
-                    }
-                    edited::EndChild();
+                    ImVec2 p = ImGui::GetWindowPos();
+                    static float weapon_color[4] = { 174 / 255.f, 197 / 255.f, 255 / 255.f, 1.f };
+                    ImGui::Checkbox("2D Box", &Dcheckbox);
+                    /* ImGui::Checkbox("Player Head", &Headcheckbox);
+                     ImGui::Checkbox("Health Bar", &Healthcheckbox);
+                     ImGui::Checkbox("Player Name", &Namecheckbox);
+                     ImGui::Checkbox("Distance", &Distancecheckbox);
+                     ImGui::Checkbox("Weapon", &weaponcheckbox); */
+                     //  ImGui::Checkbox("Bone", &Bonecheckbox);
 
-                    edited::BeginChild("Additions", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static int select = 0;
-                        const char* items[3]{ "Low", "Normal", "High" };
-                        edited::Combo("History", &select, items, IM_ARRAYSIZE(items), 3);
+                    ImGui::CheckPicker("Bone", "Bone Color", &Bonecheckbox, weapon_color);
 
-                        static bool delay_shot = true;
-                        edited::Checkbox("Delay Shot", &delay_shot);
 
-                        static bool duck_peek = false;
-                        edited::Checkbox("Duck Peek Assist", &duck_peek);
+                    ImGui::CheckPicker("Bone##2", "Bone Color##2", &Bonecheckbox, weapon_color);
 
-                        static bool peek_assist = false;
-                        edited::CheckboxClicked("Quick Peek Assist", &peek_assist);
+                    ImGui::MultiCombo("Flogs", Flogs, Flogss, 5);
 
-                        static bool speed_fire = true;
-                        edited::Checkbox("Speed Up Fire Rate", &speed_fire);
+                    static int fov = 0;
+                    ImGui::SliderInt("ESP Distance", &fov, 0, 3000);
 
-                        static bool Magic_bullet = false;
-                        edited::CheckboxClicked("Magic Bullet", &Magic_bullet);
-                    }
-                    edited::EndChild();
+                    static float chance_hit = 0.5f;
+                    ImGui::SliderFloat("Delay", &chance_hit, 0.5f, 5.f, "%.1f");
 
-                    edited::BeginChild("Anti Aim", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static bool Enabled = true;
-                        edited::Checkbox("Enabled", &Enabled);
+                    static char input[64] = { "" };
+                    ImGui::InputTextWithHint("Exact Value", "Value..", input, 64, NULL);
 
-                        static int select0 = 0;
-                        const char* items0[2]{ "Disabled", "Enabled" };
-                        edited::ComboClicked("Pitch", &select0, items0, IM_ARRAYSIZE(items0), 2);
+                    static int select = 0;
+                    const char* items[3]{ "Default", "Static", "Module" };
+                    ImGui::Combo("Mode", &select, items, IM_ARRAYSIZE(items), 3);
 
-                        static int select1 = 0;
-                        const char* items1[2]{ "Disabled", "Enabled" };
-                        edited::ComboClicked("Yaw", &select1, items1, IM_ARRAYSIZE(items1), 2);
+                    static bool multi_num[4] = { true, true, true, false };
+                    const char* multi_items[4] = { "Body", "Neck", "Spin", "Legs" };
+                    ImGui::MultiCombo("Body Overlay", multi_num, multi_items, 4);
 
-                        static bool slow_walk = false;
-                        edited::Checkbox("Slow Walk", &slow_walk);
+                    static int key = 0;
+                    ImGui::Keybind("Overlay keybinds", &key, true);
 
-                        static bool freestanding = false;
-                        static float color[4] = { 124 / 255.f, 103 / 255.f, 255 / 255.f, 0.5f };
-                        edited::CheckboxPicker("Freestanding", &freestanding, color, picker_flags);
-                    }
-                    edited::EndChild();
+                    ImGui::KeybindPicker("             Aimbot", &key, true, "Aimbotbinds Color##2", weapon_color);
+
+                    ImGui::ColorEdit4("test Color", weapon_color, picker_flags);
+
+                    if (ImGui::Button("Click Me", ImVec2(ImGui::GetContentRegionMax().x - s->WindowPadding.x, 25)));
+
                 }
-                ImGui::EndGroup();
-
-                ImGui::SameLine();
-
-                ImGui::BeginGroup();
-                {
-                    edited::BeginChild("General", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static bool enabled = true;
-                        edited::CheckboxClicked("Enabled", &enabled);
-
-                        static bool silent = false;
-                        edited::CheckboxClicked("Silent Aimbot", &silent);
-
-                        static bool auto_fire = true;
-                        edited::Checkbox("Automatic Fire", &auto_fire);
-
-                        static bool penetrate_walls = true;
-                        edited::Checkbox("Penetrate Walls", &penetrate_walls);
-
-                        static int field = 90;
-                        edited::SliderInt("Field Of View", &field, -180, 180);
-
-                        static float r0 = -100, r1 = 100;
-                        edited::RangeSliderFloat("Hit Chance", &r0, &r1, -100, 100, "%.1f, %.1f");
-
-                        static float r2 = 0, r3 = 10;
-                        edited::RangeSliderFloat("Damage", &r2, &r3, 0, 10, "%.1f, %.1f");
-                    }
-                    edited::EndChild();
-
-                    edited::BeginChild("Selection", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static int select0 = 0;
-                        const char* items0[2]{ "Hit Chance", "Default" };
-                        edited::Combo("Target", &select0, items0, IM_ARRAYSIZE(items0), 2);
-
-                        static bool multi_num1[5] = { false, true, true, true, false };
-                        const char* multi_items1[5] = { "Head", "Chest", "Stomatch", "Body", "Legs" };
-                        edited::MultiComboClicked("Hitboxes", multi_num1, multi_items1, 5);
-
-                        static int select1 = 0;
-                        const char* items1[2]{ "Select", "Defect" };
-                        edited::ComboClicked("Multipint", &select1, items1, IM_ARRAYSIZE(items1), 2);
-
-                        static bool auto_stop = true;
-                        edited::CheckboxClicked("Auto Stop", &auto_stop);
-
-                        static bool auto_scope = true;
-                        edited::Checkbox("Auto Scope", &auto_scope);
-                    }
-                    edited::EndChild();
-
-                    edited::BeginChild("Extrended", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        static int select1 = 0;
-                        const char* items1[2]{ "Automatic", "Yourself" };
-                        edited::Combo("Mode", &select1, items1, IM_ARRAYSIZE(items1), 2);
-
-                        static int key = 0;
-                        edited::Keybind("Click on me to bind", &key);
-
-                    }
-                    edited::EndChild();
-                }
-                ImGui::EndGroup();
-
+                ImGui::EndChild();
             }
-            else if (active_tab == 2)
+            ImGui::EndGroup();
+            ImGui::SameLine();
+
+            ImGui::BeginGroup();
             {
-                ImGui::BeginGroup();
+
+                ImGui::BeginChild(" ", "", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) / 2, 420));
                 {
-                    edited::BeginChild("Players", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
+                    ImVec2 pos = ImGui::GetWindowPos();
+                    ImDrawList* draw = ImGui::GetWindowDrawList();
+                    if (Flogs[0])
                     {
-                        static bool enabled = true;
-                        edited::Checkbox("Enabled", &enabled);
+                        //   ImGui::SetCursorPos(ImVec2(80, 45));
+                        ImGui::SetCursorPos(ImVec2(60, 65));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddCircle(ImVec2(pos1.x + 88, pos1.y - 20), hdtk + 1, ImGui::ColorConvertFloat4ToU32(ImVec4(0, 0, 0, 255)), 12, 0);
+                        draw->AddCircleFilled(ImVec2(pos1.x + 88, pos1.y - 20), hdtk, ImGui::ColorConvertFloat4ToU32(ImVec4(255, 255, 255, 255)), 12);
 
-                        static bool teammates = false;
-                        edited::Checkbox("Teammates", &teammates);
+                        draw->AddShadowCircle(ImVec2(pos1.x + 88, pos1.y - 20), hdtk, ImGui::ColorConvertFloat4ToU32(ImVec4(71, 226, 67, 255 / 2)), 50.f, ImVec2(0, 0), 0, 12);
 
-                        static bool behind = false;
-                        edited::Checkbox("Behind Walls", &behind);
-
-                        static bool tracers = true;
-                        edited::CheckboxClicked("Bullet Tracers", &tracers);
-
-                        static bool offscreen = false;
-                        edited::CheckboxClicked("Offscreen ESP", &offscreen);
-
-                        static bool sounds = false;
-                        static float color_sound[4] = { 124 / 255.f, 103 / 255.f, 255 / 255.f, 0.5f };
-                        edited::CheckboxPicker("Sounds", &sounds, color_sound, picker_flags);
-
-                        static bool radar = false;
-                        static float color_radar1[4] = { 124 / 255.f, 103 / 255.f, 255 / 255.f, 1.0f };
-                        static float color_radar2[4] = { 124 / 255.f, 103 / 255.f, 255 / 255.f, 0.5f };
-                        edited::CheckboxDoublePicker("Radar", &radar, color_radar1, color_radar2, picker_flags);
-
-                        static char input[45] = { "" };
-
-                        ImGui::InputTextEx("v", "Enter your text here", input, 45, ImVec2(ImGui::GetContentRegionMax().x - style->WindowPadding.x, 35), NULL);
-
+                        //  draw->AddRect(ImVec2(pos1.x + 100, pos1.y - 20), ImVec2(pos1.x + 40, pos1.y + 30), ImColor(255,255,255), 0.0f, 0.0f, hdtk);
                     }
-                    edited::EndChild();
-
-                    edited::BeginChild("Models", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
+                    if (Dcheckbox)
                     {
-                        static int enemies = 0;
-                        edited::Keybind("Enemies", &enemies);
-
-                        static int teammates = 0;
-                        edited::Keybind("Teammates", &teammates);
-
-                        static int players = 0;
-                        edited::Keybind("Local Player", &players);
-
-                        static int ragdolls = 0;
-                        edited::Keybind("Ragdolls", &ragdolls);
-
+                        ImGui::SetCursorPos(ImVec2(50, 15));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddRect(ImVec2(pos1.x, pos1.y), ImVec2(pos1.x + 200, pos1.y + 360), ImColor(255, 255, 255, 255), 0.0f, 0.0f, boxtk);
+                        draw->AddShadowRect(ImVec2(pos1.x, pos1.y), ImVec2(pos1.x + 200, pos1.y + 360), ImColor(255, 255, 255, 255), 14.0f, ImVec2(0, 0), 0, 0);
                     }
-                    edited::EndChild();
-
-                    edited::BeginChild("World", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
+                    if (Flogs[1])
                     {
-                        static bool bomb = true;
-                        edited::CheckboxClicked("Bomb", &bomb);
-
-                        static bool weapons = false;
-                        edited::CheckboxClicked("Weapons", &weapons);
-
-                        static float r0 = -9000, r1 = 9000;
-                        edited::RangeSliderFloat("The Radius Of Vision", &r0, &r1, -10000, 10000, "%.1f, %.1f");
+                        ImGui::SetCursorPos(ImVec2(42, 15));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddRectFilled(ImVec2(pos1.x, pos1.y), ImVec2(pos1.x + hptk, pos1.y + 360), ImColor(24, 248, 24, 255), 0.0f);
+                        draw->AddShadowRect(ImVec2(pos1.x, pos1.y), ImVec2(pos1.x + hptk, pos1.y + 360), ImColor(24, 248, 24, 255), 14.0f, ImVec2(0, 0), 0, 0);
                     }
-                    edited::EndChild();
+                    if (Flogs[2])
+                    {
+                        ImGui::SetCursorPos(ImVec2(112, 0));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddText(ImVec2(pos1.x, pos1.y), ImColor(255, 255, 255, 255), "PLAYER NAME");
+                    }
+                    if (Flogs[3])
+                    {
+                        ImGui::SetCursorPos(ImVec2(254, 12));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddText(ImVec2(pos1.x, pos1.y), ImColor(255, 255, 255, 255), "384M");
+                    }
+                    if (Flogs[4])
+                    {
+                        ImGui::SetCursorPos(ImVec2(254, 23));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        draw->AddText(ImVec2(pos1.x, pos1.y), ImColor(255, 255, 255, 255), "M416");
+                    }
+                    if (Bonecheckbox)
+                    {
+                        ImGui::SetCursorPos(ImVec2(26, 74));
+                        ImVec2 pos1 = ImGui::GetCursorScreenPos();
+                        ImVec2 child_size = ImGui::GetWindowSize();
+                        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                        //����
+                        ImVec2 neck(122 + pos1.x, pos1.y);
+                        //���ֱ�
+                        ImVec2 epaule_droite(70 + pos1.x, 40 + pos1.y);
+                        ImVec2 coude_droite(45 + pos1.x, 100 + pos1.y);
+                        //���ֱ�
+                        ImVec2 epaule_gauche(170 + pos1.x, 20 + pos1.y);
+                        ImVec2 coude_gauche(210 + pos1.x, 100 + pos1.y);
+                        //������
+                        ImVec2 bassin(121 + pos1.x, 110 + pos1.y);
+                        //����
+                        ImVec2 anche_droite(80 + pos1.x, 207 + pos1.y);
+                        ImVec2 genoux_droite(80 + pos1.x, 258 + pos1.y);
+                        //����
+                        ImVec2 anche_gauche(175 + pos1.x, 210 + pos1.y);
+                        ImVec2 genoux_gauche(175 + pos1.x, 261 + pos1.y);
+                        //����ͷ������������
+                        draw_list->AddLine(neck, bassin, ImColor(255, 255, 255, 255), bonetk);
+                        //�������ֱ�
+                        draw_list->AddLine(neck, epaule_droite, ImColor(255, 255, 255, 255), bonetk);
+                        draw_list->AddLine(epaule_droite, coude_droite, ImColor(255, 255, 255, 255), bonetk);
+                        //�������ֱ�
+                        draw_list->AddLine(neck, epaule_gauche, ImColor(255, 255, 255, 255), bonetk);
+                        draw_list->AddLine(epaule_gauche, coude_gauche, ImColor(255, 255, 255, 255), bonetk);
+                        //��������
+                        draw_list->AddLine(bassin, anche_droite, ImColor(255, 255, 255, 255), bonetk);
+                        draw_list->AddLine(anche_droite, genoux_droite, ImColor(255, 255, 255, 255), bonetk);
+                        //��������
+                        draw_list->AddLine(bassin, anche_gauche, ImColor(255, 255, 255, 255), bonetk);
+                        draw_list->AddLine(anche_gauche, genoux_gauche, ImColor(255, 255, 255, 255), bonetk);
+                    }
                 }
-                ImGui::EndGroup();
-
-                ImGui::SameLine();
-
-                ImGui::BeginGroup();
+                ImGui::EndChild();
+                ImGui::BeginChild("C", "Others", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) / 2, 80));
                 {
-                    edited::BeginChild("ESP PREVIEW", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        /*
-                        edited::esp_preview(image::preview_model,
-                            &esp_preview::nickname, esp_preview::nick_color,
-                            &esp_preview::weapon, esp_preview::weapon_color,
-                            &esp_preview::hp, esp_preview::hp_color,
-                            &esp_preview::zoom, esp_preview::zoom_color,
-                            &esp_preview::bomb, esp_preview::bomb_color,
-                            &esp_preview::c4, esp_preview::c4_color,
-                            &esp_preview::money, esp_preview::money_color,
-                            &esp_preview::hit, esp_preview::hit_color,
-                            &esp_preview::box, esp_preview::box_color,
-                            &esp_preview::HP_line, esp_preview::hp_line_color);*/
-                    }
-                    edited::EndChild();
-
-                    edited::BeginChild("ESP MANAGE ELEMENTS", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-
-                        edited::CheckboxPicker("Show Nickname", &esp_preview::nickname, esp_preview::nick_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Zoomed", &esp_preview::zoom, esp_preview::zoom_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Weapon", &esp_preview::weapon, esp_preview::weapon_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Money", &esp_preview::money, esp_preview::money_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Bomb", &esp_preview::bomb, esp_preview::bomb_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Box", &esp_preview::box, esp_preview::box_color, picker_flags);
-
-                        edited::CheckboxPicker("Show Hit", &esp_preview::hit, esp_preview::hit_color, picker_flags);
-
-                        edited::CheckboxDoublePicker("Show HP", &esp_preview::HP_line, esp_preview::hp_color, esp_preview::hp_line_color, picker_flags);
-
-                        edited::CheckboxPicker("Show C4", &esp_preview::c4, esp_preview::c4_color, picker_flags);
-
-                    }
-                    edited::EndChild();
+                    ImGui::SliderFloat("2D box thick", &boxtk, 1.f, 5.f, "%.1f");
+                    ImGui::SliderFloat("Head Size", &hdtk, 1.f, 10.f, "%.1f");
+                    ImGui::SliderFloat("Health Size", &hptk, 1.f, 5.f, "%.1f");
+                    ImGui::SliderFloat("Bone thick", &bonetk, 1.f, 5.f, "%.1f");
                 }
-                ImGui::EndGroup();
+                ImGui::EndChild();
+                // ImGui::SetCursorPos(ImVec2(260,540));
+                ImGui::SetCursorPos(ImVec2(60 + tab_size, 500) + (s->ItemSpacing * 2));
+                ImGui::BeginChild("A", "Team", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) / 2, 80));
+                {
+                    ImGui::Checkbox("Filter teams", &Filterteams);
+                    ImGui::Checkbox("Filter teams on map", &Filterteams_map);
+                }
+                ImGui::EndChild();
             }
-            else if (active_tab == 6)
-            {
-                ImGui::BeginGroup();
-                {
-                    edited::BeginChild("GUI", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        edited::ColorEdit4("Accent Color", color, picker_flags | ImGuiColorEditFlags_NoAlpha);
-                    }
-                    edited::EndChild();
-
-                    edited::BeginChild("Styles", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        edited::ColorEdit4("Background", background, picker_flags);
-
-                        edited::ColorEdit4("Border", border, picker_flags);
-
-                        edited::ColorEdit4("Child", child, picker_flags);
-
-                    }
-                    edited::EndChild();
-
-                    edited::BeginChild("Others", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        edited::ColorEdit4("Color Element's", widget, picker_flags);
-
-                        edited::ColorEdit4("Color Selectable", selectable, picker_flags);
-
-                        edited::ColorEdit4("Color Popup's", popup, picker_flags);
-                    }
-                    edited::EndChild();
-                }
-                ImGui::EndGroup();
-
-                ImGui::SameLine();
-
-                ImGui::BeginGroup();
-                {
-                    edited::BeginChild("Miscellaneous", ImVec2(c::bg::size.x - (100 + spacing.x * 3), 0) / 2);
-                    {
-                        edited::ColorEdit4("Text Active", text_active, picker_flags);
-
-                        edited::ColorEdit4("Text Hovered", text_hovered, picker_flags);
-
-                        edited::ColorEdit4("Text Default", text_default, picker_flags);
-                    }
-                    edited::EndChild();
-
-                }
-                ImGui::EndGroup();
-            }
-
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + spacing.x);
+            ImGui::EndGroup();
         }
-        ImGui::EndChild();
+        if (tabs == 5)
+        {
+            ImGui::SetCursorPos(ImVec2(60 + tab_size, 60) + (s->ItemSpacing * 2));
+            ImGui::BeginGroup();
+            {
+                ImGui::BeginChild("D", "Online Chat -> Online users:48", ImVec2((c::bg::size.x - 60 - s->ItemSpacing.x * 4) + 18, 520));
+                {
+
+                }
+                ImGui::EndChild();
+            }
+            ImGui::EndGroup();
+        }
 
         ImGui::PopStyleVar();
     }
     ImGui::End();
-
 }

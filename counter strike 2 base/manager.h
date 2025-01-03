@@ -21,10 +21,15 @@
 #include "sdk/interfaces/network_client.h"
 #include "sdk/interfaces/prediction.h"
 #include "sdk/interfaces/game_event_manager.h"
+#include "sdk/interfaces/cvar.h"
+#include "sdk/interfaces/engine_trace.h"
 
 using namespace utils;// Brings all symbols from the utils namespace into scope.
 
 class ISource2Client;
+
+class CUtlBuffer;
+class Ray_t;
 
 struct manager_t
 {
@@ -32,10 +37,17 @@ struct manager_t
 
 	void init();
 
+	using utl_buffer_init_t = void(__fastcall*)(CUtlBuffer*, int, int, int);
+	using utl_buffer_put_string_t = void(__fastcall*)(CUtlBuffer*, const char*);
+	using utl_buffer_ensure_capacity_t = void(__fastcall*)(CUtlBuffer*, int);
+
 	struct function_table_t
 	{
+		utl_buffer_init_t utl_buffer_init;
+		utl_buffer_put_string_t utl_buffer_put_string;
+		utl_buffer_ensure_capacity_t utl_buffer_ensure_capacity;
 
-	};
+	} function;
 
 	//dont really need this could just do another way, but have some advantages 
 	library tier0, sdl3, gameoverlayrenderer64, client, engine2, inputsystem, localize, panorama, scenesystem, rendersystemdx11, schema;
@@ -75,9 +87,11 @@ struct manager_t
 	sdk::global_vars_t* global_vars = nullptr;
 	sdk::network_client_service_t* network_client_service = nullptr;
 	sdk::cprediction* prediction = nullptr;
+	sdk::ccvar* cvar = nullptr;
+	sdk::engine_trace_t* engine_trace = nullptr;
 
 private:
 	uintptr_t base;
 };
 
-extern std::unique_ptr<manager_t> manager;
+inline std::unique_ptr<manager_t> manager = std::make_unique<manager_t>(/* base */ 0, /* tok */ 0);

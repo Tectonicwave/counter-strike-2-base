@@ -5,6 +5,8 @@
 #include "../../utils/memory.h"
 #include "../schema/schema_var.h"
 #include "../sdk/maths/vector.h"
+#include "../sdk/maths/qangle.h"
+#include "../sdk/maths/vector4d.h"
 
 #include <cstdint>
 #include "../../utils/utl/UtlString.hpp"
@@ -22,11 +24,39 @@ namespace sdk
 	//forward the class
 	class cuser_cmd;
 
+	struct CBoneData
+	{
+		sdk::vector location;
+		float scale;
+		sdk::quaternion rotation;
+	};
+
 	class CEntityIdentity
 	{
 	public:
+		std::uint32_t get_index() const {
+			return *reinterpret_cast<const std::uint32_t*>(reinterpret_cast<std::uintptr_t>(this) + 0x10);
+		}
 
+		SCHEMA(std::uint32_t, flags, "CEntityIdentity", "m_flags");
 
+		bool is_valid()
+		{
+			return get_index() != invalid_ehandle_index;
+		}
+
+		int get_entry_index()
+		{
+			if (!is_valid())
+				return ent_entry_mask;
+
+			return get_index() & ent_entry_mask;
+		}
+
+		int get_serial_number()
+		{
+			return get_index() >> num_serial_num_shift_bits;
+		}
 	};
 
 	class CEntityInstance
@@ -38,13 +68,26 @@ namespace sdk
 			return utils::CallVFunc<void, 38U>(this, pReturn);
 		}
 
+		CHandle<CEntityIdentity> get_ref_ehandle() {
+			CEntityIdentity* pIdentity = get_entity();
+			if (pIdentity == nullptr)
+				return CHandle<CEntityIdentity>();
 
+			return CHandle<CEntityIdentity>(
+				pIdentity->get_entry_index(),
+				pIdentity->get_serial_number() - (pIdentity->get_flags() & 1)
+			);
+		}
+
+		SCHEMA(CEntityIdentity*, entity, "CEntityInstance", "m_pEntity");
 	};
 
 	class CCollisionProperty {
 	public:
 
-
+		std::uint16_t collision_mask() const {
+			return *reinterpret_cast<const std::uint16_t*>(reinterpret_cast<std::uintptr_t>(this) + 0x38);
+		}
 
 	};
 
@@ -78,6 +121,10 @@ namespace sdk
 
 	}; // class CCSPlayer_WeaponServices
 
+	//here for temp 
+	using CUtlSymbolLarge = char[0x08];
+	template <typename> using CStrongHandle = char[0x08];
+
 	class CModel
 	{
 	public:
@@ -87,9 +134,20 @@ namespace sdk
 	class CModelState
 	{
 	public:
+		std::uint8_t padding_0[0x80];
+		CBoneData* bones;
+		std::uint8_t padding_1[0x18];
+		sdk::CStrongHandle<CModel> modelHandle;
+		sdk::CUtlSymbolLarge modelName;
 
+		uint64_t mesh_group_mask() {
+			// https://github.com/sezzyaep/CS2-OFFSETS/blob/b5de6a27fa59c0af5ad45ba320f12a7298089ef7/client.dll.cs#L3509
+			return *(uint64_t*)(this + 0x198);
+		}
 
-
+		size_t num_bones() {
+			return 128; // :3
+		}
 	};
 
 	//foward
@@ -99,17 +157,28 @@ namespace sdk
 	{
 	public:
 		SCHEMA(sdk::vector, vec_abs_origin, "CGameSceneNode", "m_vecAbsOrigin");
+		SCHEMA(sdk::vector, vec_origin, "CGameSceneNode", "m_vecOrigin");
+		SCHEMA(sdk::qangle, angle_rotation, "CGameSceneNode", "m_angRotation");
+		SCHEMA(sdk::qangle, abs_angle_rotation, "CGameSceneNode", "m_angAbsRotation");
 
-
+		CSkeletonInstance* get_skeleton_instance()
+		{
+			return utils::CallVFunc<CSkeletonInstance*, 8u>(this);
+		}
 	};
 
 	class CSkeletonInstance : public CGameSceneNode
 	{
 	public:
+		Memory_pad(0x1CC); //0x0000
+		int bone_count; //0x01CC
+		Memory_pad(0x18); //0x01D0
+		int mask; //0x01E8
+		Memory_pad(0x4); //0x01EC
+		//Matrix2x4_t* pBoneCache; //0x01F0
 
-
+		SCHEMA(CModelState, model_state, "CSkeletonInstance", "m_modelState");
 	};
-
 
 	class C_BaseEntity : public CEntityInstance
 	{
@@ -122,7 +191,9 @@ namespace sdk
 		SCHEMA(uint32_t, player_flags, "C_BaseEntity", "m_fFlags");
 		SCHEMA(float, water_level, "C_BaseEntity", "m_flWaterLevel");
 		SCHEMA(std::uint8_t, move_type, "C_BaseEntity", "m_MoveType");
-
+		SCHEMA(float, simulation_time, "C_BaseEntity", "m_flSimulationTime");
+		SCHEMA(sdk::CHandle<C_BaseEntity>, owner_entity, "C_BaseEntity", "m_hOwnerEntity");
+		SCHEMA(CCollisionProperty*, collision, "C_BaseEntity", "m_pCollision");
 
 		bool find_class(std::uint64_t name)
 		{
@@ -237,6 +308,10 @@ namespace sdk
 	class C_CSPlayerPawn : public C_CSPlayerPawnBase
 	{
 	public:
+		std::uint16_t get_collision_mask() {
+			auto* collision = get_collision();
+			return (collision != nullptr) ? static_cast<CCollisionProperty*>(collision)->collision_mask() : 0;
+		}
 
 		bool is_enemy();
 	};

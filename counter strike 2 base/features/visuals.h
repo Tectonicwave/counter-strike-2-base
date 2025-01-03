@@ -84,6 +84,8 @@ struct visuals_t
 
 	void Reset_info(player_data_t& player, bool force);
 
+	void drawPlayerSkeleton(const sdk::CBoneData* bones, sdk::color color) noexcept;
+
 	void Store_info(player_data_t& player);
 
 	void Draw_box(player_data_t& player);
@@ -95,4 +97,4 @@ struct visuals_t
 	player_data_t players[sdk::max_players];
 };
 
-inline visuals_t* visuals = new visuals_t;
+inline std::unique_ptr<visuals_t> visuals = std::make_unique<visuals_t>();

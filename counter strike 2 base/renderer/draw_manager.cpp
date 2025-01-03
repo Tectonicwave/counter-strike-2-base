@@ -15,13 +15,8 @@
 #include "../hooks/hook_manager.h"
 
 #include "key_manager.h"
+#include "../resources/font_namespace.h"
 
-namespace image
-{
-	ID3D11ShaderResourceView* background_preview = nullptr;
-	ID3D11ShaderResourceView* preview_model = nullptr;
-	ID3D11ShaderResourceView* logo = nullptr;
-}
 
 // thread-safe draw data mutex
 static SRWLOCK drawLock = {};
@@ -41,7 +36,7 @@ static void __cdecl ImGuiFreeWrapper(void* pMemory, [[maybe_unused]] void* pUser
 	}
 }
 
-bool draw_manager_t::Setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+bool draw_manager_t::setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	// check is it were already initialized
 	if (Initialized)
@@ -63,48 +58,13 @@ bool draw_manager_t::Setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 	draw_list_safe = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
 	draw_list_render = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
 
-	// setup styles
-#pragma region draw_setup_style
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.Alpha = 1.0f;
-	style.WindowPadding = ImVec2(8, 8);
-	style.WindowRounding = 4.0f;
-	style.WindowBorderSize = 1.0f;
-	style.WindowMinSize = ImVec2(32, 32);
-	style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
-	style.ChildRounding = 4.0f;
-	style.ChildBorderSize = 1.0f;
-	style.PopupRounding = 4.0f;
-	style.PopupBorderSize = 1.0f;
-	style.FramePadding = ImVec2(4, 2);
-	style.FrameRounding = 4.0f;
-	style.FrameBorderSize = 1.0f;
-	style.ItemSpacing = ImVec2(8, 4);
-	style.ItemInnerSpacing = ImVec2(4, 4);
-	style.IndentSpacing = 6.0f;
-	style.ColumnsMinSpacing = 6.0f;
-	style.ScrollbarSize = 6.0f;
-	style.ScrollbarRounding = 9.0f;
-	style.GrabMinSize = 0.0f;
-	style.GrabRounding = 4.0f;
-	style.TabRounding = 4.0f;
-	style.TabBorderSize = 1.0f;
-	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
-	style.SelectableTextAlign = ImVec2(0.0f, 0.5f);
-	style.WindowShadowSize = 0.f;
-	style.AntiAliasedLines = true;
-	style.AntiAliasedFill = true;
-	style.AntiAliasedLinesUseTex = true;
-	style.ColorButtonPosition = ImGuiDir_Right;
-#pragma endregion
-
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 	ImFontConfig cfg;
-	cfg.FontBuilderFlags = ImGuiFreeTypeBuilderFlags_ForceAutoHint | ImGuiFreeTypeBuilderFlags_LightHinting | ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
+	cfg.FontBuilderFlags = ImGuiFreeTypeBuilderFlags_ForceAutoHint | ImGuiFreeTypeBuilderFlags_LightHinting | ImGuiFreeTypeBuilderFlags_LoadColor;
 
 	font::inter_element = io.Fonts->AddFontFromMemoryTTF(inter_semibold, sizeof(inter_semibold), 12.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::inter_child = io.Fonts->AddFontFromMemoryTTF(inter_semibold, sizeof(inter_semibold), 14.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
@@ -112,6 +72,13 @@ bool draw_manager_t::Setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 	font::icomoon = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 19.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::icomoon_tabs = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 22.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::icomoon_widget = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 16.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+
+	font::poppins_medium = io.Fonts->AddFontFromMemoryTTF(poppins_medium, sizeof(poppins_medium), 17.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	font::poppins_medium_low = io.Fonts->AddFontFromMemoryTTF(poppins_medium, sizeof(poppins_medium), 15.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	font::tab_icon = io.Fonts->AddFontFromMemoryTTF(tabs_icons, sizeof(tabs_icons), 24.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	font::tahoma_bold = io.Fonts->AddFontFromMemoryTTF(tahoma_bold, sizeof(tahoma_bold), 17.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	font::tahoma_bold2 = io.Fonts->AddFontFromMemoryTTF(tahoma_bold, sizeof(tahoma_bold), 28.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	font::chicons = io.Fonts->AddFontFromMemoryTTF(chicon, sizeof(chicon), 20.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 
 	//not for directx11
 	//D3DX11_IMAGE_LOAD_INFO info; ID3DX11ThreadPump* pump{ nullptr };
@@ -123,7 +90,7 @@ bool draw_manager_t::Setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 	return Initialized;
 }
 
-void draw_manager_t::NewFrame()
+void draw_manager_t::new_frame()
 {
 	// Start a new frame for ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -131,7 +98,7 @@ void draw_manager_t::NewFrame()
 	ImGui::NewFrame();
 }
 
-void draw_manager_t::Render()
+void draw_manager_t::render()
 {
 	// Finalize the ImGui rendering process and draw the prepared data
 	ImGui::Render();
@@ -140,7 +107,7 @@ void draw_manager_t::Render()
 }
 
 // Resets the draw data for a new frame
-void draw_manager_t::ResetDrawData()
+void draw_manager_t::reset_draw_data()
 {
 	// Reset the active draw list for the new frame
 	draw_list_active->_ResetForNewFrame();
@@ -153,7 +120,7 @@ void draw_manager_t::ResetDrawData()
 }
 
 // Swaps the draw data between the active and safe draw lists
-void draw_manager_t::SwapDrawData()
+void draw_manager_t::swap_draw_data()
 {
 	// Acquire an exclusive lock for thread safety
 	::AcquireSRWLockExclusive(&drawLock);

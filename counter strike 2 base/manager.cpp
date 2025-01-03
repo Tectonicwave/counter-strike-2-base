@@ -2,8 +2,6 @@
 #include "hooks/hook_manager.h"
 #include "sdk/schema/schema_var.h"
 
-std::unique_ptr<manager_t> manager;
-
 // game modules Constructor
 manager_t::manager_t(uintptr_t base, uint32_t reserved) : base(base)
 {
@@ -30,10 +28,17 @@ void manager_t::init()
 	global_vars = *reinterpret_cast<sdk::global_vars_t**>(solve_address(FIND_PATTERN("client.dll", "48 89 15 ?? ?? ?? ?? 48 89 42"), 0x3, 0x7));
 	network_client_service = sdk::find_interface_list<sdk::network_client_service_t>(engine2.get_interface(), XOR("NetworkClientService_001"));
 	prediction = sdk::find_interface_list<sdk::cprediction>(client.get_interface(), XOR("Source2ClientPrediction001"));
+	cvar = sdk::find_interface_list<sdk::ccvar>(tier0.get_interface(), XOR("VEngineCvar00"));
 
 	swap_chain = **reinterpret_cast<sdk::ISwapChainDx11***>(solve_address(FIND_PATTERN("rendersystemdx11.dll", "66 0F 7F 0D ? ? ? ? 48 8B F7 66 0F 7F 05"), 0x4, 0x8));
 	game_event_manager = *reinterpret_cast<sdk::game_event_manager_t**>(get_absolute_address(FIND_PATTERN("client.dll", "48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 85 C9 74 2D"), 0x3));
 	input = *reinterpret_cast<sdk::ccsgo_input**>(solve_address(FIND_PATTERN("client.dll", "48 8B 0D ? ? ? ? 4C 8B C6 8B 10 E8"), 0x3, 0x7));
+	engine_trace = *reinterpret_cast<sdk::engine_trace_t**>(get_absolute_address(FIND_PATTERN("client.dll", "4C 8B 25 ? ? ? ? 24"), 0x3, 0x0));
+
+	/* grab our function stuff */
+	function.utl_buffer_init = reinterpret_cast<decltype(function.utl_buffer_init)>(find_export(tier0.get_module_hash(), FNV1A("??0CUtlBuffer@@QEAA@HHH@Z")));
+	function.utl_buffer_put_string = reinterpret_cast<decltype(function.utl_buffer_put_string)>(find_export(tier0.get_module_hash(), FNV1A("?PutString@CUtlBuffer@@QEAAXPEBD@Z")));
+	function.utl_buffer_ensure_capacity = reinterpret_cast<decltype(function.utl_buffer_ensure_capacity)>(find_export(tier0.get_module_hash(), FNV1A("?EnsureCapacity@CUtlBuffer@@QEAAXH@Z")));
 
 	hook_manager.init();
 	hook_manager.attach();

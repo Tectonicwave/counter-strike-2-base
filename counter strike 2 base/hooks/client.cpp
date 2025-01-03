@@ -5,13 +5,14 @@
 #include "../features/movement.h"
 #include "../features/visuals.h"
 #include "../features/prediction.h"
+#include "../features/player_log.h"
 
 namespace hooks::client
 {
 	sdk::ViewMatrix_t* get_matrix_for_view(CRenderGameSystem* pRenderGameSystem, IViewRender* pViewRender, sdk::ViewMatrix_t* pOutWorldToView, sdk::ViewMatrix_t* pOutViewToProjection, sdk::ViewMatrix_t* pOutWorldToProjection, sdk::ViewMatrix_t* pOutWorldToPixels)
 	{
 		sdk::ViewMatrix_t* matResult = hook_manager.get_matrix_for_view->call(pRenderGameSystem, pViewRender, pOutWorldToView, pOutViewToProjection, pOutWorldToProjection, pOutWorldToPixels);
-		
+
 		// get view matrix, could just get sig for this from the actual function
 		manager->game_vars.view_matrix = *pOutWorldToProjection;
 
@@ -60,7 +61,6 @@ namespace hooks::client
 		return hook_manager.create_move->call(input, slot, pUserCmd);
 	}
 
-
 	void frame_stage_notify(void* rcx, sdk::client_frame_stage stage)
 	{
 		if (stage == sdk::client_frame_stage::FRAME_NET_UPDATE_POSTDATAUPDATE_END)
@@ -72,6 +72,8 @@ namespace hooks::client
 			// run our esp data store, store out data we need for the esp
 			visuals->run();
 		}
+
+		player_records->run_log(stage);
 
 		hook_manager.frame_stage_notify->call(rcx, stage);
 	}
@@ -88,13 +90,13 @@ namespace hooks::client
 			// game and imgui are based on immediate render mode principe
 			// this means that we should always reset draw data from previous frame and re-store it again
 			// Reset draw data for the new frame
-			draw->ResetDrawData();
+			draw->reset_draw_data();
 
 			// Render visuals, we passing the render setup information, for off arrows and other stuff 
 			visuals->render(&view_render->setup);
 
 			// Swap the updated draw data to the safe draw list for use in rendering
-			draw->SwapDrawData();
+			draw->swap_draw_data();
 		}
 	}
 }

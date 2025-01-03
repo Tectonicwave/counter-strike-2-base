@@ -33,7 +33,7 @@ namespace hooks::dx11
             draw->create_render_target();
 
             // Set up the draw manager with the window, device, and context
-            draw->Setup(manager->game_vars.window, manager->D3DX11.device, manager->D3DX11.context);
+            draw->setup(manager->game_vars.window, manager->D3DX11.device, manager->D3DX11.context);
 
             // Update display size if it has changed
             if (draw->display_size.x != ImGui::GetIO().DisplaySize.x ||
@@ -50,13 +50,13 @@ namespace hooks::dx11
         if (draw->Initialized)
         {
             // Begin a new ImGui frame
-            draw->NewFrame();
+            draw->new_frame();
             {
                 // Draw the GUI menu or other elements
                 menu->menu();
             }
             // Render the frame
-            draw->Render();
+            draw->render();
         }
 
         // Call the original present function to continue the rendering pipeline

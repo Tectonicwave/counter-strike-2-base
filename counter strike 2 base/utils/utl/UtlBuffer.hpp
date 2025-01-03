@@ -1,3 +1,4 @@
+#include "../../manager.h"
 #pragma
 
 namespace utils
@@ -5,32 +6,31 @@ namespace utils
 	class CUtlBuffer
 	{
 	public:
-		/*
 		Memory_pad(0x80);
 
 		CUtlBuffer(int a1, int nSize, int a3)
 		{
-			if (!manager->fn.utl_buffer_init)
+			if (!manager->function.utl_buffer_init)
 				return;
 
-			manager->fn.utl_buffer_init(this, a1, nSize, a3);
+			manager->function.utl_buffer_init(this, a1, nSize, a3);
 		}
 
 		void PutString(const char* szString)
 		{
-			if (!manager->fn.utl_buffer_put_string)
+			if (!manager->function.utl_buffer_put_string)
 				return;
 
-			manager->fn.utl_buffer_put_string(this, szString);
+			manager->function.utl_buffer_put_string(this, szString);
 		}
 
 		void EnsureCapacity(int nSize)
 		{
-			if (!manager->fn.utl_buffer_ensure_capacity)
+			if (!manager->function.utl_buffer_ensure_capacity)
 				return;
 
-			manager->fn.utl_buffer_ensure_capacity(this, nSize);
-		}*/
+			manager->function.utl_buffer_ensure_capacity(this, nSize);
+		}
 	};
 
 }

@@ -2,25 +2,31 @@
 // used: [d3d]
 #include <d3d11.h>       // Core Direct3D 11 functionality
 #include <imgui_internal.h>
+#include <string>
+#include <memory>
 
-namespace font
+namespace image
 {
-	inline ImFont* icomoon = nullptr;
-	inline ImFont* icomoon_tabs = nullptr;
-	inline ImFont* icomoon_widget = nullptr;
+	inline ID3D11ShaderResourceView* background_preview = nullptr;
+	inline ID3D11ShaderResourceView* preview_model = nullptr;
+	inline ID3D11ShaderResourceView* logo = nullptr;
 
-	inline ImFont* inter_child = nullptr;
-	inline ImFont* inter_element = nullptr;
+	inline ID3D11ShaderResourceView* bg = nullptr;
+	inline ID3D11ShaderResourceView* logo_general = nullptr;
+
+	inline ID3D11ShaderResourceView* arrow = nullptr;
+	inline ID3D11ShaderResourceView* bell_notify = nullptr;
+	inline ID3D11ShaderResourceView* roll = nullptr;
 }
 
 class draw_manager_t
 {
 public:
-	bool Setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
-	void NewFrame();
-	void Render();
-	void ResetDrawData();
-	void SwapDrawData();
+	bool setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	void new_frame();
+	void render();
+	void reset_draw_data();
+	void swap_draw_data();
 	void render_draw_data(ImDrawData* pDrawData);
 
 	void Destroy();
@@ -43,4 +49,4 @@ public:
 	ImVec2 display_size{};
 };
 
-inline draw_manager_t* draw = new draw_manager_t;
+inline std::unique_ptr<draw_manager_t> draw = std::make_unique<draw_manager_t>();

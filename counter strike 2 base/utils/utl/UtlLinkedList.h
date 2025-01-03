@@ -2,129 +2,279 @@
 
 #include <memory>
 #include <iterator>
+#include "UtlMemory.hpp"
 
 namespace utils
 {
-
     template <class T, class I>
-    struct utl_linked_list_element_t
+    struct UtlLinkedListElement_t
     {
-        T elem;    // The actual data of the linked list element
-        I previous; // Index of the previous element
-        I next;     // Index of the next element
+        UtlLinkedListElement_t(const UtlLinkedListElement_t&) = delete;
 
-        utl_linked_list_element_t(I prev = -1, I nxt = -1)
-            : previous(prev), next(nxt) {}
+        T element;
+        I previous;
+        I next;
     };
 
-    template <class T, class I, class M>
+    template <class T, class S = unsigned short, bool ML = false, class I = S, class M = CUtlMemory<UtlLinkedListElement_t<T, S>, I>>
     class CUtlLinkedList
     {
     public:
         using elem_type_t = T;
-        using index_type_t = I;
+        using index_type_t = S;
+        using index_local_type_t = I;
         using memory_allocator_t = M;
 
-        // Iterator Class
-        template <typename list_t>
+        template <typename List_t>
         class const_iterator_t
         {
         public:
-            using elem_type_t = typename list_t::elem_type_t;
-            using index_type_t = typename list_t::index_type_t;
+            using elem_type_t = typename List_t::elem_type_t;
+            using index_type_t = typename List_t::index_type_t;
 
-            const_iterator_t() noexcept : list(nullptr), index(list_t::invalid_index()) {}
-            const_iterator_t(const list_t& lst, index_type_t idx) noexcept
-                : list(&lst), index(idx) {}
+            const_iterator_t() :
+                list_ptr(nullptr), index(List_t::invalid_index()) { }
 
-            const_iterator_t& operator++() noexcept
+            const_iterator_t(const List_t& list, index_type_t index) :
+                list_ptr(&list), index(index) { }
+
+            const_iterator_t& operator++()
             {
-                index = list->next(index);
+                index = list_ptr->next(index);
                 return *this;
             }
 
-            const_iterator_t operator++(int) noexcept
+            const_iterator_t operator++(int)
             {
-                const_iterator_t tmp = *this;
+                const_iterator_t copy = *this;
                 ++(*this);
-                return tmp;
+                return copy;
             }
 
-            const_iterator_t& operator--() noexcept
+            const_iterator_t& operator--()
             {
-                index = (index == list->invalid_index()) ? list->tail() : list->prev(index);
+                assert(index != list_ptr->head());
+                index = (index == list_ptr->invalid_index() ? list_ptr->tail() : list_ptr->previous(index));
                 return *this;
             }
 
-            const_iterator_t operator--(int) noexcept
+            const_iterator_t operator--(int)
             {
-                const_iterator_t tmp = *this;
+                const_iterator_t copy = *this;
                 --(*this);
-                return tmp;
+                return copy;
             }
 
-            bool operator==(const const_iterator_t& other) const noexcept { return index == other.index; }
-            bool operator!=(const const_iterator_t& other) const noexcept { return index != other.index; }
+            bool operator==(const const_iterator_t& other) const
+            {
+                assert(list_ptr == other.list_ptr);
+                return index == other.index;
+            }
 
-            const elem_type_t& operator*() const { return list->element(index); }
-            const elem_type_t* operator->() const { return &(**this); }
+            bool operator!=(const const_iterator_t& other) const
+            {
+                assert(list_ptr == other.list_ptr);
+                return index != other.index;
+            }
 
-        private:
-            const list_t* list;
+            const elem_type_t& operator*() const
+            {
+                return list_ptr->element(index);
+            }
+
+            const elem_type_t* operator->() const
+            {
+                return (&**this);
+            }
+
+        protected:
+            const List_t* list_ptr;
             index_type_t index;
         };
 
-        // Constructor with optional grow size and initial size
-        explicit CUtlLinkedList(int nGrowSize = 0, int nSize = 0)
-            : _memory(nGrowSize, nSize), _head(invalid_index()), _tail(invalid_index()),
-            _first_free(invalid_index()), _elem_count(0), _num_allocated(0),
-            _last_alloc(_memory.invalid_iterator()), _elements(_memory.base()) {}
+        template <typename List_t>
+        class iterator_t : public const_iterator_t<List_t>
+        {
+        public:
+            using elem_type_t = typename List_t::elem_type_t;
+            using index_type_t = typename List_t::index_type_t;
+            using base_t = const_iterator_t<List_t>;
 
-        ~CUtlLinkedList() noexcept = default;
+            iterator_t() { }
 
-        // Disallow copying
+            iterator_t(const List_t& list, index_type_t index) :
+                const_iterator_t<List_t>(list, index) { }
+
+            iterator_t& operator++()
+            {
+                base_t::index = base_t::list_ptr->next(base_t::index);
+                return *this;
+            }
+
+            iterator_t operator++(int)
+            {
+                iterator_t copy = *this;
+                ++(*this);
+                return copy;
+            }
+
+            iterator_t& operator--()
+            {
+                base_t::index = (base_t::index == base_t::list_ptr->invalid_index() ? base_t::list_ptr->tail() : base_t::list_ptr->previous(base_t::index));
+                return *this;
+            }
+
+            iterator_t operator--(int)
+            {
+                iterator_t copy = *this;
+                --(*this);
+                return copy;
+            }
+
+            elem_type_t& operator*() const
+            {
+                List_t* mutable_list = const_cast<List_t*>(base_t::list_ptr);
+                return mutable_list->element(base_t::index);
+            }
+
+            elem_type_t* operator->() const
+            {
+                return (&**this);
+            }
+        };
+
+        CUtlLinkedList(int grow_size = 0, int size = 0) :
+            memory{ nullptr, size, grow_size }, head_index(invalid_index()), tail_index(invalid_index()), first_free_index(invalid_index()), element_count(0), allocated_count(0), last_alloc(memory.first()), elements(memory.base()) { }
+
+        ~CUtlLinkedList()
+        {
+            remove_all();
+        }
+
         CUtlLinkedList(const CUtlLinkedList&) = delete;
         CUtlLinkedList& operator=(const CUtlLinkedList&) = delete;
 
-        // Accessor for elements
-        T& operator[](const I idx) { return _memory[idx].elem; }
-        const T& operator[](const I idx) const { return _memory[idx].elem; }
+        T& operator[](const I index)
+        {
+            assert(is_valid_index(index));
+            return memory[index].element;
+        }
 
-        T& element(const I idx) { return _memory[idx].elem; }
-        const T& element(const I idx) const { return _memory[idx].elem; }
+        const T& operator[](const I index) const
+        {
+            assert(is_valid_index(index));
+            return memory[index].element;
+        }
 
-        // Head and tail of the list
-        I head() const noexcept { return _head; }
-        I tail() const noexcept { return _tail; }
+        [[nodiscard]] T& element(const I index)
+        {
+            assert(is_valid_index(index));
+            return memory[index].element;
+        }
 
-        // Get previous and next elements by index
-        I prev(const I idx) const noexcept { return _memory[idx].previous; }
-        I next(const I idx) const noexcept { return _memory[idx].next; }
+        [[nodiscard]] const T& element(const I index) const
+        {
+            assert(is_valid_index(index));
+            return memory[index].element;
+        }
 
-        // Invalid index
-        static I invalid_index() noexcept { return static_cast<I>(-1); }
+        [[nodiscard]] I head() const
+        {
+            return head_index;
+        }
 
-        // Iterators
-        auto begin() const { return const_iterator_t<CUtlLinkedList<T, I, M>>(*this, head()); }
-        auto begin() { return iterator_t<CUtlLinkedList<T, I, M>>(*this, head()); }
-        auto end() const { return const_iterator_t<CUtlLinkedList<T, I, M>>(*this, invalid_index()); }
-        auto end() { return iterator_t<CUtlLinkedList<T, I, M>>(*this, invalid_index()); }
+        [[nodiscard]] I tail() const
+        {
+            return tail_index;
+        }
+
+        [[nodiscard]] I previous(const I index) const
+        {
+            assert(is_valid_index(index));
+            return internal_element(index).previous;
+        }
+
+        [[nodiscard]] I next(const I index) const
+        {
+            assert(is_valid_index(index));
+            return internal_element(index).next;
+        }
+
+        [[nodiscard]] static S invalid_index()
+        {
+            return static_cast<S>(M::invalid_index());
+        }
+
+        [[nodiscard]] bool is_valid_index(const I index) const
+        {
+            return memory.is_valid_index(index);
+        }
+
+        [[nodiscard]] I find(const T& source) const
+        {
+            for (I i = head_index; i != invalid_index(); i = next(i))
+            {
+                if (element(i) == source)
+                    return i;
+            }
+
+            return invalid_index();
+        }
+
+        void remove_all()
+        {
+            for (I i = head_index; i != invalid_index();)
+            {
+                I next_index = next(i);
+                memory[i].~UtlLinkedListElement_t();
+                i = next_index;
+            }
+
+            head_index = tail_index = first_free_index = invalid_index();
+            element_count = 0;
+        }
+
+        [[nodiscard]] auto begin() const
+        {
+            return const_iterator_t<CUtlLinkedList<T, S, ML, I, M>>(*this, head());
+        }
+
+        [[nodiscard]] auto begin()
+        {
+            return iterator_t<CUtlLinkedList<T, S, ML, I, M>>(*this, head());
+        }
+
+        [[nodiscard]] auto end() const
+        {
+            return const_iterator_t<CUtlLinkedList<T, S, ML, I, M>>(*this, invalid_index());
+        }
+
+        [[nodiscard]] auto end()
+        {
+            return iterator_t<CUtlLinkedList<T, S, ML, I, M>>(*this, invalid_index());
+        }
 
     protected:
-        using list_element_t = utl_linked_list_element_t<T, I>;
+        using list_element_t = UtlLinkedListElement_t<T, S>;
 
-        // Helper function to get internal element by index
-        list_element_t& internal_element(const I idx) { return _memory[idx]; }
-        const list_element_t& internal_element(const I idx) const { return _memory[idx]; }
+        [[nodiscard]] list_element_t& internal_element(const I index)
+        {
+            return memory[index];
+        }
 
-        M _memory; // Memory allocator
-        I _head;   // Head of the list
-        I _tail;   // Tail of the list
-        I _first_free; // First free element (unused element)
-        I _elem_count; // Number of elements in the list
-        I _num_allocated; // Number of elements allocated
-        typename M::iterator_t _last_alloc; // Iterator for last allocated memory
-        list_element_t* _elements; // Base pointer to elements
+        [[nodiscard]] const list_element_t& internal_element(const I index) const
+        {
+            return memory[index];
+        }
+
+        M memory;
+        I head_index;
+        I tail_index;
+        I first_free_index;
+        I element_count;
+        I allocated_count;
+        typename M::iterator_t last_alloc;
+        list_element_t* elements;
     };
 
 }

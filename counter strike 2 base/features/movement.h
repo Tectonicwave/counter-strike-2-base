@@ -20,4 +20,4 @@ struct movement_t
 
 };
 
-inline movement_t* movement = new movement_t;
+inline std::unique_ptr<movement_t> movement = std::make_unique<movement_t>();

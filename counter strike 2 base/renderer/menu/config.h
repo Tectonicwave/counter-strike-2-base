@@ -1,4 +1,5 @@
 #pragma once
+#include <imgui.h>
 
 namespace esp_preview
 {

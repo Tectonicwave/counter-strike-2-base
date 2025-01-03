@@ -1896,10 +1896,12 @@ const char* ImStrSkipBlank(const char* str)
 #endif
 #include <map>
 #endif // #ifdef IMGUI_USE_STB_SPRINTF
+#include <resources/font_namespace.h>
 
 #if defined(_MSC_VER) && !defined(vsnprintf)
 #define vsnprintf _vsnprintf
 #endif
+#include <imgui_settings.h>
 
 int ImFormatString(char* buf, size_t buf_size, const char* fmt, ...)
 {
@@ -5436,18 +5438,22 @@ ImVec2 ImGui::GetItemRectSize()
 
 // Prior to v1.90 2023/10/16, the BeginChild() function took a 'bool border = false' parameter instead of 'ImGuiChildFlags child_flags = 0'.
 // ImGuiChildFlags_Border is defined as always == 1 in order to allow old code passing 'true'.
-bool ImGui::BeginChild(const char* str_id, const ImVec2& size_arg, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
+bool ImGui::BeginChild(const char* str_logo, const char* str_id, const ImVec2& size_arg, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
 {
     ImGuiID id = GetCurrentWindow()->GetID(str_id);
-    return BeginChildEx(str_id, id, size_arg, child_flags, window_flags);
+
+    PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 13));
+    PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 10));
+
+    return BeginChildEx(str_logo, str_id, id, size_arg, child_flags, window_flags | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysUseWindowPadding);
 }
 
 bool ImGui::BeginChild(ImGuiID id, const ImVec2& size_arg, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
 {
-    return BeginChildEx(NULL, id, size_arg, child_flags, window_flags);
+    return BeginChildEx(NULL, NULL, id, size_arg, child_flags, window_flags);
 }
 
-bool ImGui::BeginChildEx(const char* name, ImGuiID id, const ImVec2& size_arg, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
+bool ImGui::BeginChildEx(const char* logo, const char* name, ImGuiID id, const ImVec2& size_arg, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* parent_window = g.CurrentWindow;
@@ -5502,6 +5508,13 @@ bool ImGui::BeginChildEx(const char* name, ImGuiID id, const ImVec2& size_arg, I
     const ImVec2 size_default((child_flags & ImGuiChildFlags_AutoResizeX) ? 0.0f : size_avail.x, (child_flags & ImGuiChildFlags_AutoResizeY) ? 0.0f : size_avail.y);
     const ImVec2 size = CalcItemSize(size_arg, size_default.x, size_default.y);
     SetNextWindowSize(size);
+
+    ImGui::GetWindowDrawList()->AddRectFilled(parent_window->DC.CursorPos, parent_window->DC.CursorPos + ImVec2(size_arg), GetColorU32(c::child::background), c::child::rounding);
+    ImGui::GetWindowDrawList()->AddRect(parent_window->DC.CursorPos, parent_window->DC.CursorPos + ImVec2(size_arg), GetColorU32(c::child::outline_background), c::child::rounding);
+
+    ImGui::GetWindowDrawList()->AddText(font::chicons, 17.f, parent_window->DC.CursorPos + ImVec2(17, -7), GetColorU32(c::accent_color), logo);
+    ImGui::GetWindowDrawList()->AddText(font::tahoma_bold, 17.f, parent_window->DC.CursorPos + ImVec2(40, -7), GetColorU32(c::accent_text_low_color), name);
+
 
     // Build up name. If you need to append to a same child from multiple location in the ID stack, use BeginChild(ImGuiID id) with a stable value.
     // FIXME: 2023/11/14: commented out shorted version. We had an issue with multiple ### in child window path names, which the trailing hash helped workaround.
@@ -5558,7 +5571,7 @@ void ImGui::EndChild()
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* child_window = g.CurrentWindow;
-
+    PopStyleVar(2);
     IM_ASSERT(g.WithinEndChild == false);
     IM_ASSERT(child_window->Flags & ImGuiWindowFlags_ChildWindow);   // Mismatched BeginChild()/EndChild() calls
 
@@ -14370,7 +14383,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         Text("KEY OWNERS");
         {
             Indent();
-            if (BeginChild("##owners", ImVec2(-FLT_MIN, GetTextLineHeightWithSpacing() * 6), ImGuiChildFlags_FrameStyle | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoSavedSettings))
+            if (BeginChild(NULL, "##owners", ImVec2(-FLT_MIN, GetTextLineHeightWithSpacing() * 6), ImGuiChildFlags_FrameStyle | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoSavedSettings))
                 for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
                 {
                     ImGuiKeyOwnerData* owner_data = GetKeyOwnerData(&g, key);
@@ -14386,7 +14399,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         Text("SHORTCUT ROUTING");
         {
             Indent();
-            if (BeginChild("##routes", ImVec2(-FLT_MIN, GetTextLineHeightWithSpacing() * 6), ImGuiChildFlags_FrameStyle | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoSavedSettings))
+            if (BeginChild(NULL, "##routes", ImVec2(-FLT_MIN, GetTextLineHeightWithSpacing() * 6), ImGuiChildFlags_FrameStyle | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoSavedSettings))
                 for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
                 {
                     ImGuiKeyRoutingTable* rt = &g.KeysRoutingTable;
@@ -14969,7 +14982,7 @@ void ImGui::ShowDebugLogWindow(bool* p_open)
     SameLine();
     if (SmallButton("Copy"))
         SetClipboardText(g.DebugLogBuf.c_str());
-    BeginChild("##log", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Border, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+    BeginChild("##log", "##log", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Border, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
     ImGuiListClipper clipper;
     clipper.Begin(g.DebugLogIndex.size());

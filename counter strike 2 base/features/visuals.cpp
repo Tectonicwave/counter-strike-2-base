@@ -1,5 +1,8 @@
 #include "visuals.h"
 
+#include "../resources/font_namespace.h"
+#include "player_log.h"
+
 //i like this methed more as im on ultra wide
 bool visuals_t::get_player_rect(player_data_t& player)
 {
@@ -9,8 +12,8 @@ bool visuals_t::get_player_rect(player_data_t& player)
 	pos_bot.z -= 4;
 
 	// Convert world positions to screen positions
-	if (!math::world_to_screen(pos_top, player.top)) return false;
-	if (!math::world_to_screen(pos_bot, player.bot)) return false;
+	if (!math::world_to_screen(pos_top, player.top) || !math::world_to_screen(pos_bot, player.bot))
+		return false;
 
 	// Round the screen coordinates
 	player.top = player.top.round();
@@ -111,12 +114,22 @@ void visuals_t::players_esp(const sdk::cview_setup* view_setup)
 				continue;
 			}
 
+			//really should just add this etc into color
+			const auto white = sdk::color{ 1.f, 1.f, 1.f, 1.f };  // Inside color
+
 			Draw_box(player);
 
 			Draw_Health(player);
 
-			//really should just add this etc into color
-			const auto white = sdk::color{ 1.f, 1.f, 1.f, 1.f };  // Inside color
+			//yeah its bad lol
+			auto& current_record = player_records->logs[player.index];
+
+			if (current_record.pawn == player.player_pawn) {
+				drawPlayerSkeleton(current_record.records.front().bone_array, white);
+
+				drawPlayerSkeleton(current_record.records.back().bone_array, white);
+			}
+
 			// need set your font for text atm there here for basic reasons
 			auto text_size = ImGui::CalcTextSize(player.player_controller->get_sanitized_player_name().get());
 			sdk::vector2d textPosition = sdk::vector2d{ player.top.x, player.top.y - text_size.y - 2 };
@@ -145,6 +158,34 @@ void visuals_t::Reset_info(player_data_t& player, bool force)
 
 	// Update alpha_lerp
 	player.alpha_lerp = player.alpha;
+}
+
+void visuals_t::drawPlayerSkeleton(const sdk::CBoneData* bones, sdk::color color) noexcept
+{
+	if (!bones)
+		return;
+
+	for (const auto& joints : BoneJointList::List)
+	{
+		sdk::CBoneData previous{};
+
+		for (const auto index : joints)
+		{
+			const auto& current = bones[index];
+
+			if (previous.location != sdk::vector(0, 0, 0))
+			{
+				sdk::vector2d start{}, end{};
+				if (math::world_to_screen(previous.location, start) &&
+					math::world_to_screen(current.location, end))
+				{
+					renderer->render_line(start, end, color, 1.f);
+				}
+			}
+
+			previous = current;
+		}
+	}
 }
 
 void visuals_t::Store_info(player_data_t& player)
@@ -179,7 +220,7 @@ void visuals_t::Draw_box(player_data_t& player)
 }
 
 // fluff trying do multiple bars when we can just use a function 
-void visuals_t::draw_bar(const sdk::vector2d& start_pos, int length, bool horizontal, const std::vector<sdk::color>& colors, float fraction,std::optional<int> value)
+void visuals_t::draw_bar(const sdk::vector2d& start_pos, int length, bool horizontal, const std::vector<sdk::color>& colors, float fraction, std::optional<int> value)
 {
 	const auto white = sdk::color{ 1.f, 1.f, 1.f, 1.f };  // Inside color
 	// Clamp the fraction to [0, 1]
@@ -197,8 +238,8 @@ void visuals_t::draw_bar(const sdk::vector2d& start_pos, int length, bool horizo
 
 	// Bar dimensions (2px thick health bar)
 	const float bar_length = std::floor((static_cast<float>(length) - 2.f) * multiplier);
-	const sdk::vector2d bar_size = horizontal? sdk::vector2d{ bar_length, 2.f }: sdk::vector2d{ 2.f, -bar_length };
-	const sdk::vector2d bar_pos = horizontal? start_pos + sdk::vector2d{ 1.f, 1.f } : start_pos + sdk::vector2d{ 1.f, -1.f };
+	const sdk::vector2d bar_size = horizontal ? sdk::vector2d{ bar_length, 2.f } : sdk::vector2d{ 2.f, -bar_length };
+	const sdk::vector2d bar_pos = horizontal ? start_pos + sdk::vector2d{ 1.f, 1.f } : start_pos + sdk::vector2d{ 1.f, -1.f };
 
 	// Create bar rectangle
 	rect_legacy bar_rect(bar_pos, bar_size.x, bar_size.y);

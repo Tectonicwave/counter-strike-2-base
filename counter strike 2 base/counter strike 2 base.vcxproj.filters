@@ -84,9 +84,6 @@
     <ClInclude Include="renderer\imgui\imgui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="renderer\imgui\imgui_edited.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="renderer\imgui\imgui_freetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -210,6 +207,21 @@
     <ClInclude Include="renderer\resources\hitsound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="renderer\resources\font_namespace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="features\player_log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\cvar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\engine_trace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\maths\vector3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -251,9 +263,6 @@
     <ClCompile Include="renderer\imgui\imgui_draw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="renderer\imgui\imgui_edited.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="renderer\imgui\imgui_freetype.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -267,9 +276,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="renderer\imgui\imgui_impl_win32.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="renderer\menu\menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="renderer\menu\config.cpp">
@@ -336,6 +342,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sdk\interfaces\game_event_manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer\menu\menu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="features\player_log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\interfaces\engine_trace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

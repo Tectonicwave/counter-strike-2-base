@@ -54,4 +54,4 @@ struct prediction_t
 	void end(sdk::ccsgo_input* input, sdk::cuser_cmd* cmd);
 };
 
-inline prediction_t* prediction = new prediction_t;
+inline std::unique_ptr<prediction_t> prediction = std::make_unique<prediction_t>();

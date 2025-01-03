@@ -24,6 +24,8 @@ public:
 
 	void line(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const;
 
+	void render_line(const sdk::vector2d& min, const sdk::vector2d& max, sdk::color aColor, float flThickness);
+
 	void rect_filled(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const;
 
 	void text(const sdk::vector2d& pos, const sdk::color& col, int flags, const std::string& text) const;
@@ -36,4 +38,4 @@ public:
 
 };
 
-inline renderer_t* renderer = new renderer_t;
+inline std::unique_ptr<renderer_t> renderer = std::make_unique<renderer_t>();
