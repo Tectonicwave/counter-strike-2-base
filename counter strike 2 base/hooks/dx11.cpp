@@ -10,8 +10,7 @@ namespace hooks::dx11
         if (manager->D3DX11.render_target_view == nullptr)
         {
             // Retrieve the Direct3D device and context from the swap chain
-            manager->swap_chain->pDXGISwapChain->GetDevice(__uuidof(ID3D11Device),
-                reinterpret_cast<void**>(&manager->D3DX11.device));
+            manager->swap_chain->pDXGISwapChain->GetDevice(__uuidof(ID3D11Device), reinterpret_cast<void**>(&manager->D3DX11.device));
             manager->D3DX11.device->GetImmediateContext(&manager->D3DX11.context);
 
             // Attempt to find the game window using its class and title
@@ -56,7 +55,7 @@ namespace hooks::dx11
                 menu->menu();
             }
             // Render the frame
-            draw->render();
+            draw->end_frame();
         }
 
         // Call the original present function to continue the rendering pipeline

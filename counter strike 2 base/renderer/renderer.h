@@ -32,7 +32,7 @@ public:
 
 	ImColor GetU32(const sdk::color& aColor);
 
-	void render_text(std::string strText, sdk::vector2d& vecTextPosition, sdk::color aTextColor, int flags, ImFont* pDrawFont);
+	void render_text(const std::string_view strText, sdk::vector2d& vecTextPosition, sdk::color aTextColor, const int flags, const ImFont* pDrawFont);
 
 	void line(const ImVec2& start, const ImVec2& end, const sdk::color& col, float thickness) const;
 

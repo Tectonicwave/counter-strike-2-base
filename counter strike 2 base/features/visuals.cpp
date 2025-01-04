@@ -65,7 +65,7 @@ void visuals_t::players_get()
 		}
 
 		const auto player_pawn = player_controller->get_pawn();
-		if (!player_pawn || !player_pawn->find_class(FNV1A("C_CSPlayerPawn")) || player_pawn->get_health() < 1.f)
+		if (!player_pawn || !player_pawn->find_class(FNV1A("C_CSPlayerPawn")) || player_pawn->get_health() <= 0)
 		{
 			Reset_info(player, true);
 			continue;

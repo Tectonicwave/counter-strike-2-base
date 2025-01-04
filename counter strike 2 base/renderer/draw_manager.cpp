@@ -54,8 +54,8 @@ bool draw_manager_t::setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 		return false;
 
 	// create draw data containers
-	draw_list_active = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
 	draw_list_safe = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
+	draw_list_active = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
 	draw_list_render = IM_NEW(ImDrawList)(ImGui::GetDrawListSharedData());
 
 	ImGui::CreateContext();
@@ -68,7 +68,6 @@ bool draw_manager_t::setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 
 	font::inter_element = io.Fonts->AddFontFromMemoryTTF(inter_semibold, sizeof(inter_semibold), 12.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::inter_child = io.Fonts->AddFontFromMemoryTTF(inter_semibold, sizeof(inter_semibold), 14.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
-
 	font::icomoon = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 19.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::icomoon_tabs = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 22.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
 	font::icomoon_widget = io.Fonts->AddFontFromMemoryTTF(icomoon, sizeof(icomoon), 16.f, &cfg, io.Fonts->GetGlyphRangesCyrillic());
@@ -86,7 +85,11 @@ bool draw_manager_t::setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 	//if (image::preview_model == nullptr) D3DX11CreateShaderResourceViewFromMemory(g_pd3dDevice, preview_model, sizeof(preview_model), &info, pump, &image::preview_model, 0);
 	//if (image::logo == nullptr) D3DX11CreateShaderResourceViewFromMemory(g_pd3dDevice, logo, sizeof(logo), &info, pump, &image::logo, 0);
 
+	//set defult font
+	io.FontDefault = font::inter_element;
+
 	Initialized = io.Fonts->Build();
+
 	return Initialized;
 }
 
@@ -98,7 +101,7 @@ void draw_manager_t::new_frame()
 	ImGui::NewFrame();
 }
 
-void draw_manager_t::render()
+void draw_manager_t::end_frame()
 {
 	// Finalize the ImGui rendering process and draw the prepared data
 	ImGui::Render();
@@ -223,18 +226,14 @@ void draw_manager_t::create_render_target()
 			}
 
 			// Release back buffer after usage
-			pBackBuffer->Release();
+			RELEASE_D3D(pBackBuffer);
 		}
 	}
 }
 
 void draw_manager_t::destroy_render_target()
 {
-	if (manager->D3DX11.render_target_view != nullptr)
-	{
-		manager->D3DX11.render_target_view->Release();
-		manager->D3DX11.render_target_view = nullptr;
-	}
+	RELEASE_D3D(manager->D3DX11.render_target_view);
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

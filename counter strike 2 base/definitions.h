@@ -31,6 +31,8 @@ struct constant_holder
 #define RAD2DEG(x) ((float)(x) * (float)(180.f / M_PI))
 #define DEG2RAD(x) ((float)(x) * (float)(M_PI / 180.f))
 
+#define RELEASE_D3D(p) if(p) { p->Release(); p = nullptr; }
+
 //local crap
 #define local_pawn ( manager->game_vars.Local_Pawn )
 #define local_controller ( manager->game_vars.Local_controller )

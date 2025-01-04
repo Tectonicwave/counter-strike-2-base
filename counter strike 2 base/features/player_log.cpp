@@ -19,7 +19,6 @@ void lag_record_t::Restore(sdk::C_CSPlayerPawn* player) {
 	player->get_game_scene_node()->get_angle_rotation() = abs_rotation;
 	player->get_simulation_time() = simulation_time;
 	memcpy(player->get_game_scene_node()->get_skeleton_instance()->get_model_state().bones, bone_array, sizeof(sdk::CBoneData) * 128);
-
 }
 
 //this is public code
@@ -123,6 +122,8 @@ bool lag_record_t::is_valid_time() {
 //FRAME_NET_UPDATE_END
 void player_log::run_log(const sdk::client_frame_stage stage)
 {
+
+	/*
 	if (!manager->engine->in_game())
 	{
 		// Clear all logs when not in-game
@@ -182,5 +183,5 @@ void player_log::run_log(const sdk::client_frame_stage stage)
 		{
 			cur_record.records.pop_front();
 		}
-	}
+	}*/
 }

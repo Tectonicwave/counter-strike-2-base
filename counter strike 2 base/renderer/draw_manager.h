@@ -24,7 +24,7 @@ class draw_manager_t
 public:
 	bool setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 	void new_frame();
-	void render();
+	void end_frame();
 	void reset_draw_data();
 	void swap_draw_data();
 	void render_draw_data(ImDrawData* pDrawData);
@@ -39,10 +39,10 @@ public:
 
 	// rendering engine initialization state
 	bool Initialized = false;
-	// active draw data container used to store
-	ImDrawList* draw_list_active = nullptr;
 	// safe draw data container
 	ImDrawList* draw_list_safe = nullptr;
+	// active draw data container used to store
+	ImDrawList* draw_list_active = nullptr;
 	// actual draw data container used to render
 	ImDrawList* draw_list_render = nullptr;
 

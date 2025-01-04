@@ -42,18 +42,25 @@ ImColor renderer_t::GetU32(const sdk::color& aColor)
 	);
 }
 
-void renderer_t::render_text(std::string strText, sdk::vector2d& vecTextPosition, sdk::color aTextColor, int flags, ImFont* pDrawFont)
+void renderer_t::render_text(const std::string_view strText, sdk::vector2d& vecTextPosition, sdk::color aTextColor, const int flags, const ImFont* pDrawFont)
 {
-    // Get the text size using ImVec2
-    ImVec2 ImTextSize = pDrawFont->CalcTextSizeA(pDrawFont->FontSize, FLT_MAX, 0.0f, strText.c_str());
-    if (!pDrawFont->ContainerAtlas)
+    // Validate the font and its texture atlas. If any part is invalid, we can't render the text.
+    if (!pDrawFont || !pDrawFont->ContainerAtlas || !pDrawFont->ContainerAtlas->TexID)
         return;
 
-    ImDrawList* OldDrawList = draw->draw_list_active;
-
+    // Push the font's texture ID to the draw list so it can be used for rendering.
     draw->draw_list_active->PushTextureID(pDrawFont->ContainerAtlas->TexID);
 
-    // Handle alignment flags using sdk::vector2d
+    // Calculate the size of the text using the font's size and the input string.
+    // strText.data() provides a pointer to the underlying character data of the string view.
+    ImVec2 ImTextSize = pDrawFont->CalcTextSizeA(pDrawFont->FontSize, FLT_MAX, 0.0f, strText.data());
+
+    // If the calculated text size is invalid (width or height <= 0), we skip rendering.
+    if (ImTextSize.x <= 0.0f || ImTextSize.y <= 0.0f)
+        return;
+
+    // Handle alignment flags.
+    // Adjust the text position based on the specified alignment (right-aligned, centered, etc.).
     if (flags & RIGHT_ALIGN)
         vecTextPosition.x -= ImTextSize.x;
     if (flags & CENTERED_X)
@@ -61,33 +68,44 @@ void renderer_t::render_text(std::string strText, sdk::vector2d& vecTextPosition
     if (flags & CENTERED_Y)
         vecTextPosition.y -= ImTextSize.y / 2.0f;
 
-    // Handle outline
+    // Render text outline if the OUTLINE flag is set.
+    // The outline is drawn by rendering the text multiple times with slight offsets.
     if (flags & OUTLINE)
     {
-        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-            ImVec2(vecTextPosition.x + 1, vecTextPosition.y + 1), GetU32(sdk::color(30, 30, 36, aTextColor.a)), strText.c_str());
-        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-            ImVec2(vecTextPosition.x - 1, vecTextPosition.y - 1), GetU32(sdk::color(30, 30, 36, aTextColor.a)), strText.c_str());
-        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-            ImVec2(vecTextPosition.x + 1, vecTextPosition.y - 1), GetU32(sdk::color(30, 30, 36, aTextColor.a)), strText.c_str());
-        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-            ImVec2(vecTextPosition.x - 1, vecTextPosition.y + 1), GetU32(sdk::color(30, 30, 36, aTextColor.a)), strText.c_str());
+        sdk::color outlineColor(30, 30, 36, aTextColor.a);
+        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x + 1, vecTextPosition.y + 1), GetU32(outlineColor), strText.data());
+        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x - 1, vecTextPosition.y - 1), GetU32(outlineColor), strText.data());
+        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x + 1, vecTextPosition.y - 1), GetU32(outlineColor), strText.data());
+        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x - 1, vecTextPosition.y + 1), GetU32(outlineColor), strText.data());
     }
 
-    // Handle drop shadow
+    // Render drop shadow if the DROP_SHADOW flag is set.
+    // The shadow is drawn as a single offset text with a darker color.
     if (flags & DROP_SHADOW)
     {
-        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-            ImVec2(vecTextPosition.x + 1, vecTextPosition.y + 1), GetU32(sdk::color(0, 0, 0, aTextColor.a)), strText.c_str());
+        sdk::color shadowColor(0, 0, 0, aTextColor.a);
+        draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x + 1, vecTextPosition.y + 1), GetU32(shadowColor), strText.data());
     }
 
-    // Render main text
-    draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize,
-        ImVec2(vecTextPosition.x, vecTextPosition.y), GetU32(aTextColor), strText.c_str());
+    // Render the main text using the provided font and color.
+    draw->draw_list_active->AddText(pDrawFont, pDrawFont->FontSize, ImVec2(vecTextPosition.x, vecTextPosition.y), GetU32(aTextColor), strText.data());
 
+    // Restore the original texture ID for the draw list.
     draw->draw_list_active->PopTextureID();
 }
 
+/*
+Why we changed from std::string to const std::string_view:
+1. *Stability and Safety:
+   - `CalcTextSizeA` expects `const char*` pointers (`text_begin` and `text_end`) for input. Using `std::string` could lead to temporary or invalid memory being passed, particularly in cases of implicit conversions or when using temporary string objects.
+   - `std::string_view` guarantees that the memory being referenced remains valid for the duration of the function, preventing crashes or undefined behavior.
+
+2. *Compatibility with `CalcTextSizeA`:
+   - The implementation of `CalcTextSizeA` relies on precise control over the `text_end` pointer. `std::string_view` allows us to directly provide both `text_begin` and `text_end` as valid pointers without additional conversions or operations.
+
+3. *UTF-8 Safety:
+   - The decoding logic within `CalcTextSizeA` requires stable, valid UTF-8 encoded memory. `std::string_view` ensures this stability while avoiding overhead.
+*/
 
 void renderer_t::line(const ImVec2& start, const ImVec2& end, const sdk::color& col, float thickness = 1.0f) const {
 	draw->draw_list_active->AddLine(ImVec2(start.x, start.y), ImVec2(end.x, end.y), col.to_u32(), thickness
