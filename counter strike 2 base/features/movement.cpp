@@ -2,11 +2,15 @@
 #include "../sdk/maths/math.h"
 
 void movement_t::bhop(sdk::cuser_cmd* cmd) {
-
-	auto base_cmd = cmd->csgoUserCmd.pBaseCmd;
-	if (!base_cmd)
+	// Validate input pointers
+	if (!cmd || !cmd->csgoUserCmd.pBaseCmd || !local_pawn)
 		return;
 
+	// Check if the player is alive
+	if (local_pawn->get_health() <= 0)
+		return;
+
+	// Get move type and water level
 	const auto move_type = local_pawn->get_move_type();
 	const auto in_water = local_pawn->get_water_level() >= 2;
 
@@ -14,25 +18,26 @@ void movement_t::bhop(sdk::cuser_cmd* cmd) {
 	const bool can_jump = !in_water && move_type != sdk::MOVETYPE_LADDER &&
 		move_type != sdk::MOVETYPE_NOCLIP && move_type != sdk::MOVETYPE_OBSERVER;
 
-	// If we can't jump or the jump key isn't pressed, skip processing
-	if (!can_jump) {
-		return;
+	// If the player can jump, is pressing the jump key, and is on the ground, release the jump key
+	if (can_jump && (cmd->nButtons.nValue & sdk::IN_JUMP) && (local_pawn->get_player_flags() & sdk::fl_onground)) {
+		cmd->nButtons.nValue &= ~sdk::IN_JUMP; // Release the jump key
 	}
-
-	if (cmd->nButtons.nValue & sdk::IN_JUMP && local_pawn->get_player_flags() & sdk::fl_onground)
-		cmd->nButtons.nValue &= ~sdk::IN_JUMP;
 }
+
 
 void movement_t::movement_fix(sdk::cuser_cmd* cmd) {
 
-	// Validate command and base command pointers
-	auto base_cmd = cmd->csgoUserCmd.pBaseCmd;
-	if (!base_cmd || !base_cmd->pViewAngles)
+	// Validate input pointers
+	if (!cmd || !cmd->csgoUserCmd.pBaseCmd || !cmd->csgoUserCmd.pBaseCmd->pViewAngles)
 		return;
 
-	// Get current and target movement vectors
+	// Get base command and original movement
+	const auto base_cmd = cmd->csgoUserCmd.pBaseCmd;
 	sdk::vector2d original_movement(base_cmd->flForwardMove, base_cmd->flSideMove);
-	sdk::vector2d adjusted_movement = original_movement;
+
+	// Check if movement is zero to avoid unnecessary calculations
+	if (original_movement.x == 0.0f && original_movement.y == 0.0f)
+		return;
 
 	// Calculate yaw delta
 	const sdk::qangle& target_view_angles = base_cmd->pViewAngles->angValue;
@@ -40,6 +45,7 @@ void movement_t::movement_fix(sdk::cuser_cmd* cmd) {
 	float yaw_radians = DEG2RAD(yaw_delta);
 
 	// Adjust movement for view angle
+	sdk::vector2d adjusted_movement;
 	adjusted_movement.x = original_movement.x * std::cos(yaw_radians) - original_movement.y * std::sin(yaw_radians);
 	adjusted_movement.y = original_movement.x * std::sin(yaw_radians) + original_movement.y * std::cos(yaw_radians);
 
@@ -55,7 +61,8 @@ void movement_t::movement_fix(sdk::cuser_cmd* cmd) {
 	manager->input->flSideMove = -adjusted_movement.y;
 
 	// Update base command movement
-	base_cmd->SetBits(sdk::PROTOSLOT_6 | sdk::PROTOSLOT_7);
 	base_cmd->flForwardMove = adjusted_movement.x;
 	base_cmd->flSideMove = adjusted_movement.y;
+
+	base_cmd->SetBits(sdk::PROTOSLOT_6 | sdk::PROTOSLOT_7);
 }

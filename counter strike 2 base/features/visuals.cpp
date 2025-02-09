@@ -91,9 +91,6 @@ void visuals_t::players_get()
 
 		//we storing our info for players
 		Store_info(player);
-
-		if (!get_player_rect(player))
-			player.oof = true;
 	}
 }
 
@@ -105,6 +102,9 @@ void visuals_t::players_esp(const sdk::cview_setup* view_setup)
 			continue;
 
 		player.offset = {};
+
+				if (!get_player_rect(player))
+			player.oof = true;
 
 		if (player.alpha > 0.f)
 		{

@@ -2,18 +2,15 @@
 #include "draw_manager.h"
 
 void renderer_t::rect_outline(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const {
-	draw->draw_list_active->AddRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32(), 0.0f, 0, 1.0f
-	);
+	draw->draw_list_active->AddRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32(), 0.0f, 0, 1.0f);
 }
 
 void renderer_t::rect(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const {
-	draw->draw_list_active->AddRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32()
-	);
+	draw->draw_list_active->AddRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32());
 }
 
 void renderer_t::line(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const {
-    draw->draw_list_active->AddLine(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32()
-    );
+    draw->draw_list_active->AddLine(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32());
 }
 
 void renderer_t::render_line(const sdk::vector2d& min, const sdk::vector2d& max, sdk::color aColor, float flThickness)
@@ -22,8 +19,7 @@ void renderer_t::render_line(const sdk::vector2d& min, const sdk::vector2d& max,
 }
 
 void renderer_t::rect_filled(const sdk::vector2d& min, const sdk::vector2d& max, const sdk::color& col) const {
-    draw->draw_list_active->AddRectFilled(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32()
-    );
+    draw->draw_list_active->AddRectFilled(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col.to_u32());
 }
 
 void renderer_t::text(const sdk::vector2d& pos, const sdk::color& col, int flags, const std::string& text) const {
@@ -108,6 +104,5 @@ Why we changed from std::string to const std::string_view:
 */
 
 void renderer_t::line(const ImVec2& start, const ImVec2& end, const sdk::color& col, float thickness = 1.0f) const {
-	draw->draw_list_active->AddLine(ImVec2(start.x, start.y), ImVec2(end.x, end.y), col.to_u32(), thickness
-	);
+	draw->draw_list_active->AddLine(ImVec2(start.x, start.y), ImVec2(end.x, end.y), col.to_u32(), thickness);
 }

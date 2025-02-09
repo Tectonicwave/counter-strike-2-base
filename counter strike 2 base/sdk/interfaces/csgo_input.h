@@ -16,8 +16,6 @@ namespace sdk
 
 	}; // Size: 0x005C
 
-#define MULTIPLAYER_BACKUP 150
-
 	class subtick_button
 	{
 	public:

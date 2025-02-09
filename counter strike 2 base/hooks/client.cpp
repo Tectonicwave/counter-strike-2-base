@@ -45,9 +45,6 @@ namespace hooks::client
 		if (manager->game_vars.Local_Pawn == nullptr)
 			return hook_manager.create_move->call(input, slot, pUserCmd);
 
-		// Execute bunny hop logic
-		movement->bhop(pUserCmd);
-
 		prediction->Begin(input, pUserCmd);
 		{
 			movement->bhop(pUserCmd);

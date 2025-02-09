@@ -366,12 +366,12 @@ namespace sdk
 
 		void SetPredictionCommand(sdk::cuser_cmd* pCmd)
 		{
-			utils::CallVFunc<void, 34U>(this, pCmd);
+			utils::CallVFunc<void, 37U>(this, pCmd);
 		}
 
 		void ResetPredictionCommand()
 		{
-			utils::CallVFunc<void, 35U>(this);
+			utils::CallVFunc<void, 38U>(this);
 		}
 
 	};

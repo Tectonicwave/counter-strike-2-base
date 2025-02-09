@@ -46,6 +46,8 @@ public:
 	// actual draw data container used to render
 	ImDrawList* draw_list_render = nullptr;
 
+	ImDrawData draw_data{};
+
 	ImVec2 display_size{};
 };
 

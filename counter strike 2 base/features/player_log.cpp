@@ -1,18 +1,17 @@
 #include "player_log.h"
 
-lag_record_t::lag_record_t(sdk::C_CSPlayerPawn* player)
-{
+// Constructor to initialize a lag record with player data
+lag_record_t::lag_record_t(sdk::C_CSPlayerPawn* player) {
 	origin = player->get_game_scene_node()->get_vec_origin();
 	abs_origin = player->get_game_scene_node()->get_vec_abs_origin();
 	rotation = player->get_game_scene_node()->get_angle_rotation();
 	abs_rotation = player->get_game_scene_node()->get_angle_rotation();
 	simulation_time = player->get_simulation_time();
 	memcpy(bone_array, player->get_game_scene_node()->get_skeleton_instance()->get_model_state().bones, sizeof(sdk::CBoneData) * 128);
-
 }
 
+// Restore player state from this lag record
 void lag_record_t::Restore(sdk::C_CSPlayerPawn* player) {
-	// Restore the pawn
 	player->get_game_scene_node()->get_vec_origin() = origin;
 	player->get_game_scene_node()->get_vec_abs_origin() = abs_origin;
 	player->get_game_scene_node()->get_angle_rotation() = rotation;
@@ -105,68 +104,57 @@ float lag_record_t::calc_delta_time(int newest_tick) {
 	return (tick_delta + time_difference) * 0.015625f;
 }
 
+// Check if the record's time is valid
 bool lag_record_t::is_valid_time() {
-
-	sdk::convar* sv_maxunlag = manager->cvar->find(utils::HashConst("sv_maxunlag"));
+	// Thanks Exlodium
+	static sdk::convar* sv_maxunlag = manager->cvar->find(utils::HashConst("sv_maxunlag"));
 	float max_unlag = sv_maxunlag ? sv_maxunlag->value.fl : 0.2f;
-	//float lag_compensation_factor = (manager->engine->get_net_channel_info()->get_network_latency() * 0.5f) + manager->engine->get_net_channel_info()->get_engine_latency();
 	float server_time = (simulation_time * 64.0) + (manager->engine->get_net_channel_info()->get_network_latency() * 0.5f) + manager->engine->get_net_channel_info()->get_engine_latency();
 	float delta_time = calc_delta_time(server_time);
 
-	if (std::abs(delta_time) < max_unlag)
-		return false;
-
-	return true;
+	return std::abs(delta_time) >= max_unlag;
 }
 
-//FRAME_NET_UPDATE_END
-void player_log::run_log(const sdk::client_frame_stage stage)
-{
 
-	/*
-	if (!manager->engine->in_game())
-	{
+//FRAME_NET_UPDATE_END
+// Run the logging logic for each frame
+void player_log::run_log(const sdk::client_frame_stage stage) {
+	if (!manager->engine->in_game()) {
 		// Clear all logs when not in-game
-		for (auto i = 1; i <= manager->global_vars->max_clients; i++)
-			logs[i].records.clear();
+		for (auto& log : logs) {
+			log.records.clear();
+		}
 		return;
 	}
 
-	if (stage != sdk::client_frame_stage::FRAME_NET_UPDATE_END)
+	if (stage != sdk::client_frame_stage::FRAME_NET_UPDATE_END || !local_pawn) {
 		return;
+	}
 
-	if (!local_pawn)
-		return;
-
-	for (auto i = 1; i <= sdk::max_players; i++)
-	{
+	for (int i = 1; i <= sdk::max_players; ++i) {
 		auto& cur_record = logs[i];
 		const auto player_controller = manager->resource_service->game_entity_system->get_player_controller(i);
 
-		if (!player_controller || !player_controller->find_class(FNV1A("CCSPlayerController")))
-		{
+		if (!player_controller || !player_controller->find_class(FNV1A("CCSPlayerController"))) {
 			cur_record.records.clear();
 			continue;
 		}
 
 		const auto player_pawn = player_controller->get_pawn();
-		if (!player_pawn || !player_pawn->find_class(FNV1A("C_CSPlayerPawn")) || player_pawn->get_health() < 1.f)
-		{
+		if (!player_pawn || !player_pawn->find_class(FNV1A("C_CSPlayerPawn")) || player_pawn->get_health() < 1.f) {
 			cur_record.records.clear();
 			continue;
 		}
 
 		// Handle respawn or new pawn
-		if (cur_record.pawn != player_pawn)
-		{
-			cur_record.records.clear();
+		if (cur_record.pawn != player_pawn) {
+			cur_record.reset(player_pawn);
 			cur_record.pawn = player_pawn;
 			cur_record.controller = player_controller;
 		}
 
 		// Add new records if necessary
-		if (cur_record.records.empty())
-		{
+		if (cur_record.records.empty()) {
 			cur_record.records.emplace_back(player_pawn);
 			continue;
 		}
@@ -175,13 +163,13 @@ void player_log::run_log(const sdk::client_frame_stage stage)
 		cur_record.records.push_front(std::move(record));
 
 		// Limit record size
-		if (cur_record.records.size() > 32)
+		if (cur_record.records.size() > 32) {
 			cur_record.records.pop_back();
+		}
 
 		// Remove invalid records
-		if (cur_record.records.size() > 1 && !cur_record.records.front().is_valid_time())
-		{
+		if (cur_record.records.size() > 1 && !cur_record.records.front().is_valid_time()) {
 			cur_record.records.pop_front();
 		}
-	}*/
+	}
 }

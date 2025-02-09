@@ -33,6 +33,8 @@ struct constant_holder
 
 #define RELEASE_D3D(p) if(p) { p->Release(); p = nullptr; }
 
+#define MULTIPLAYER_BACKUP 150
+
 //local crap
 #define local_pawn ( manager->game_vars.Local_Pawn )
 #define local_controller ( manager->game_vars.Local_controller )

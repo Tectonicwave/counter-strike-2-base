@@ -95,7 +95,7 @@ bool draw_manager_t::setup(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext
 
 void draw_manager_t::new_frame()
 {
-	// Start a new frame for ImGui rendering
+	// Start a new frame for ImGui rendering (menu rendering)
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -103,9 +103,12 @@ void draw_manager_t::new_frame()
 
 void draw_manager_t::end_frame()
 {
-	// Finalize the ImGui rendering process and draw the prepared data
+
+	// Render ImGui's final draw data (this ensures ImGui is rendered on top of ESP)
 	ImGui::Render();
 	render_draw_data(ImGui::GetDrawData());
+
+	// Actually render the ImGui data (this will display the menu on top of ESP)
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
@@ -237,7 +240,6 @@ void draw_manager_t::destroy_render_target()
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 bool draw_manager_t::on_window_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// Check if drawing is initialized

@@ -31,5 +31,4 @@ namespace hooks::input_system
 
 		return hook_manager.is_relative_mouse_mode->call(pThisptr, bActive);
 	}
-
 }

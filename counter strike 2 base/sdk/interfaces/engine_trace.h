@@ -64,21 +64,6 @@ namespace sdk
 		bool did_hit_world() const;
 	}; // Size: 0x108
 
-	class trace_filter_non_manual_t
-	{
-	public:
-		char __pad0000[0x8];
-		std::uint64_t trace_mask;
-		std::uint64_t null_it[2];
-		std::uint32_t skip_handles[4];
-		std::uint16_t collisions[2];
-		std::uint16_t n0000011c;
-		std::uint8_t layer;
-		std::uint8_t n00000104;
-		std::uint8_t null_it3;
-
-	};
-
 	struct trace_filter_t
 	{
 	public:
@@ -157,16 +142,6 @@ namespace sdk
 			fn(trace);
 		}
 
-		void initialize_trace_info(game_trace_t* const hit)
-		{
-			using function_t = void(__fastcall*)(game_trace_t*);
-			static function_t fn = reinterpret_cast<function_t>(
-				FIND_PATTERN("client.dll", "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 33 FF 48 8B 0D")
-				);
-
-			fn(hit);
-		}
-
 		void clip_trace_to_players(vector3& start, vector3& end, trace_filter_t* filter, game_trace_t* trace, float min, int length, float max)
 		{
 			using function_t = void(__fastcall*)(vector3&, vector3&, trace_filter_t*, game_trace_t*, float, int, float);
@@ -205,26 +180,6 @@ namespace sdk
 				);
 
 			fn(trace, start, end, filler, penetration_count);
-		}
-
-		void init_manual(trace_filter_non_manual_t& filter, sdk::C_CSPlayerPawn* skip, uint64_t mask, uint8_t layer, uint16_t idk)
-		{
-			using function_t = trace_filter_t * (__fastcall*)(trace_filter_non_manual_t&, void*, uint64_t, uint8_t, uint16_t);
-			static function_t fn = reinterpret_cast<function_t>(
-				FIND_PATTERN("client.dll", "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 41 37 33")
-				);
-
-			fn(filter, skip, mask, layer, idk);
-		}
-
-		void trace_shape_non_manual(Ray_t* ray, sdk::vector start, sdk::vector end, trace_filter_non_manual_t filter, game_trace_t& trace)
-		{
-			using function_t = bool(__fastcall*)(void*, Ray_t*, sdk::vector&, sdk::vector&, trace_filter_non_manual_t, game_trace_t&);
-			static function_t fn = reinterpret_cast<function_t>(
-				FIND_PATTERN("client.dll", "48 89 5C 24 ? 48 89 4C 24 ? 55 56 41 55 41 56 41 57 48 8D AC 24")
-				);
-
-			fn(this, ray, start, end, filter, trace);
 		}
 	};
 
