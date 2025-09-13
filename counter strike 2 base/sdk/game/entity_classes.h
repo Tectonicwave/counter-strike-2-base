@@ -65,7 +65,7 @@ namespace sdk
 
 		void get_schema_class_info(sdk::SchemaClassInfoData_t** pReturn)
 		{
-			return utils::CallVFunc<void, 38U>(this, pReturn);
+			return utils::CallVFunc<void, 42U>(this, pReturn);
 		}
 
 		CHandle<CEntityIdentity> get_ref_ehandle() {

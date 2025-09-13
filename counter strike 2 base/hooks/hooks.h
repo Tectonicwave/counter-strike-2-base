@@ -151,7 +151,5 @@ namespace hooks
         bool is_attached;
     };
 
-
-
 } // namespace hooks
 

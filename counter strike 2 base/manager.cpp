@@ -30,7 +30,7 @@ void manager_t::init()
 	prediction = sdk::find_interface_list<sdk::cprediction>(client.get_interface(), XOR("Source2ClientPrediction001"));
 	cvar = sdk::find_interface_list<sdk::ccvar>(tier0.get_interface(), XOR("VEngineCvar00"));
 
-	swap_chain = **reinterpret_cast<sdk::ISwapChainDx11***>(solve_address(FIND_PATTERN("rendersystemdx11.dll", "66 0F 7F 0D ? ? ? ? 48 8B F7 66 0F 7F 05"), 0x4, 0x8));
+	swap_chain = **reinterpret_cast<sdk::ISwapChainDx11***>(solve_address(FIND_PATTERN("rendersystemdx11.dll", "48 89 2D ? ? ? ? 48 C7 05"), 0x3, 0x7));
 	game_event_manager = *reinterpret_cast<sdk::game_event_manager_t**>(get_absolute_address(FIND_PATTERN("client.dll", "48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 85 C9 74 2D"), 0x3));
 	input = *reinterpret_cast<sdk::ccsgo_input**>(solve_address(FIND_PATTERN("client.dll", "48 8B 0D ? ? ? ? 4C 8B C6 8B 10 E8"), 0x3, 0x7));
 	engine_trace = *reinterpret_cast<sdk::engine_trace_t**>(get_absolute_address(FIND_PATTERN("client.dll", "4C 8B 25 ? ? ? ? 24"), 0x3, 0x0));
