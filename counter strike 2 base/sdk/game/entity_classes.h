@@ -378,11 +378,27 @@ namespace sdk
 
 	struct cgame_entity_system
 	{
-		void* get_base_entity_by_index(int nIndex)//GetBaseEntity
-		{///40 53 48 81 EC ? ? ? ? 48 8B 0D ? ? ? ? 48 8D 94 24 ? ? ? ?
-			using fnGetBaseEntity = void* (__thiscall*)(void*, int);
-			static auto GetBaseEntity = reinterpret_cast<fnGetBaseEntity>(FIND_PATTERN("client.dll", "81 FA ? ? ? ? 77 ? 8B C2 C1 F8 ? 83 F8 ? 77 ? 48 98 48 8B 4C C1 ? 48 85 C9 74 ? 8B C2 25 ? ? ? ? 48 6B C0 ? 48 03 C8 74 ? 8B 41 ? 25 ? ? ? ? 3B C2 75 ? 48 8B 01"));
-			return GetBaseEntity(this, nIndex);
+		//thanks iloveoranges
+		void* get_base_entity_by_index(int i) {
+			int64_t v2 = reinterpret_cast<int64_t>(this) + 16;
+
+			if ((unsigned int)i <= 0x7FFE) {
+				int v3 = i >> 9;
+				if ((unsigned int)v3 <= 0x3F) {
+					uint64_t v4 = *reinterpret_cast<uint64_t*>(v2 + 8LL * v3);
+					if (v4 != 0) {
+						uint64_t v5 = v4 + 120LL * (i & 0x1FF);
+						if (v5 != 0) {
+							uint32_t StoredIndex = *reinterpret_cast<uint32_t*>(v5 + 16) & 0x7FFF;
+							if (StoredIndex == (uint32_t)i) {
+								return *reinterpret_cast<void**>(v4 + 120LL * (i & 0x1FF));
+							}
+						}
+					}
+				}
+			}
+
+			return nullptr;
 		}
 
 		template <typename T = C_BaseEntity>
