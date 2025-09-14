@@ -3,47 +3,47 @@
 
 namespace sdk
 {
-	class INetChannelInfo
-	{
-	public:
+    class INetChannelInfo
+    {
+    public:
 
-		float get_network_latency()
-		{
-			return utils::CallVFunc<float, 10U>(this);
-		}
+        float get_network_latency()
+        {
+            return utils::CallVFunc<float, 12U>(this);
+        }
 
-		float get_engine_latency()
-		{
-			return utils::CallVFunc<float, 11U>(this);
-		}
-	};
+        float get_engine_latency()
+        {
+            return utils::CallVFunc<float, 13U>(this);
+        }
+    };
 
-	struct cengine_client
-	{
-		bool in_game()
-		{
-			return utils::CallVFunc<bool, 35U>(this);
-		}
+    struct cengine_client
+    {
+        bool in_game()
+        {
+            return utils::CallVFunc<bool, 36U>(this);
+        }
 
-		bool is_connected()
-		{
-			return utils::CallVFunc<bool, 36U>(this);
-		}
+        bool is_connected()
+        {
+            return utils::CallVFunc<bool, 37U>(this);
+        }
 
-		INetChannelInfo* get_net_channel_info(int nSplitScreenSlot = 0)
-		{
-			return utils::CallVFunc<INetChannelInfo*, 37U>(this, nSplitScreenSlot);
-		}
+        INetChannelInfo* get_net_channel_info(int nSplitScreenSlot = 0)
+        {
+            return utils::CallVFunc<INetChannelInfo*, 39U>(this, nSplitScreenSlot);
+        }
 
-		int get_local_player()
-		{
-			int nIndex = -1;
+        int get_local_player()
+        {
+            int nIndex = -1;
 
-			utils::CallVFunc<void, 49U>(this, std::ref(nIndex), 0);
+            utils::CallVFunc<void, 49U>(this, std::ref(nIndex), 0);
 
-			return nIndex + 1;
-		}
+            return nIndex + 1;
+        }
 
-	};
+    };
 
 } // namespace sdk
